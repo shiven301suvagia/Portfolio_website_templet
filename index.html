@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio — Creative Studio</title>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       SETUP WIZARD OVERLAY
+       ============================================================ -->
+  <div id="setupWizard" class="setup-overlay">
+    <div class="setup-card">
+      <div class="setup-header">
+        <span class="emoji">🎨</span>
+        <h2>Build Your Portfolio</h2>
+        <p>Fill in your details and watch your portfolio come to life!</p>
+      </div>
+
+      <div class="setup-progress" id="progressDots">
+        <span class="dot active" data-step="0"></span>
+        <span class="dot" data-step="1"></span>
+        <span class="dot" data-step="2"></span>
+        <span class="dot" data-step="3"></span>
+      </div>
+
+      <!-- Step 1: Personal Info -->
+      <div class="setup-step active" data-step="0">
+        <h3>👤 Who are you?</h3>
+        <p class="hint">This is the first thing people will see.</p>
+
+        <div class="form-group">
+          <label for="setupName">Your full name *</label>
+          <input type="text" id="setupName" placeholder="e.g., Jamie Sutton" />
+        </div>
+
+        <div class="form-group">
+          <label for="setupBadge">Your title / badge</label>
+          <input type="text" id="setupBadge" placeholder="e.g., Creative Studio, Photographer" />
+          <div class="helper">This appears above your name in the hero section.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="setupTagline">Your tagline</label>
+          <input type="text" id="setupTagline" placeholder="e.g., Crafting meaningful work that connects..." />
+          <div class="helper">A short description of what you do.</div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="setupLocation">Location</label>
+            <input type="text" id="setupLocation" placeholder="e.g., New York" />
+          </div>
+          <div class="form-group">
+            <label for="setupSince">Since</label>
+            <input type="text" id="setupSince" placeholder="e.g., 2018" />
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-primary" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+
+      <!-- Step 2: Roles & Tools -->
+      <div class="setup-step" data-step="1">
+        <h3>🎯 What do you make?</h3>
+        <p class="hint">Describe what you do and what you use.</p>
+
+        <div class="form-group">
+          <label for="setupRoles">What do you create? (comma separated)</label>
+          <input type="text" id="setupRoles" placeholder="e.g., visual stories, portraits, documentaries" />
+          <div class="helper">These will rotate in the "I create ___" line.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="setupTools">Your tools / skills (comma separated)</label>
+          <input type="text" id="setupTools" placeholder="e.g., Digital Photography, Lightroom, Photoshop" />
+          <div class="helper">These become tags in your About section.</div>
+        </div>
+
+        <div class="form-group">
+          <label for="setupBio">Tell your story (2-3 sentences)</label>
+          <textarea id="setupBio" placeholder="e.g., I'm a visual storyteller with a passion for capturing authentic moments..."></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-secondary" onclick="prevStep()">← Back</button>
+          <button class="btn-primary" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+
+      <!-- Step 3: Projects -->
+      <div class="setup-step" data-step="2">
+        <h3>📁 Your Work</h3>
+        <p class="hint">Add up to 4 projects. One can be featured (larger).</p>
+
+        <div id="projectFields">
+          <div class="project-entry">
+            <div class="form-row">
+              <div class="form-group">
+                <label>Project title</label>
+                <input type="text" class="project-title-input" placeholder="e.g., Silent Streets" />
+              </div>
+              <div class="form-group">
+                <label>Category</label>
+                <input type="text" class="project-category-input" placeholder="e.g., Photography · 2024" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Short note</label>
+              <input type="text" class="project-note-input" placeholder="What was this project about?" />
+            </div>
+            <div class="form-group">
+              <label>
+                <input type="checkbox" class="project-featured-input" />
+                Make this a featured project (spans 2 columns)
+              </label>
+            </div>
+            <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--color-border);" />
+          </div>
+        </div>
+
+        <button class="btn-secondary" style="width:100%;" onclick="addProjectField()">+ Add another project</button>
+
+        <div class="form-actions" style="margin-top:1rem;">
+          <button class="btn-secondary" onclick="prevStep()">← Back</button>
+          <button class="btn-primary" onclick="nextStep()">Next →</button>
+        </div>
+      </div>
+
+      <!-- Step 4: Contact & Finish -->
+      <div class="setup-step" data-step="3">
+        <h3>📫 Connect</h3>
+        <p class="hint">How can people reach you?</p>
+
+        <div class="form-group">
+          <label for="setupEmail">Your email *</label>
+          <input type="email" id="setupEmail" placeholder="e.g., hello@jamiesutton.com" />
+        </div>
+
+        <div class="form-group">
+          <label for="setupSocial">Social links (comma separated: label:url)</label>
+          <input type="text" id="setupSocial" placeholder="e.g., Instagram:https://instagram.com/..., Vimeo:https://vimeo.com/..." />
+          <div class="helper">Format: Label:URL, Label:URL</div>
+        </div>
+
+        <div class="form-group">
+          <label for="setupContactNote">Contact note</label>
+          <input type="text" id="setupContactNote" placeholder="e.g., Available for collaborations, commissions..." />
+        </div>
+
+        <div class="form-actions">
+          <button class="btn-secondary" onclick="prevStep()">← Back</button>
+          <button class="btn-primary" onclick="finishSetup()">✨ Launch Portfolio</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MAIN PORTFOLIO
+       ============================================================ -->
+  <div id="portfolio">
+
+    <!-- HEADER -->
+    <header class="site-header">
+      <div class="header-inner">
+        <a href="#hero" class="logo" id="headerLogo">✦</a>
+        <nav class="nav" aria-label="Main navigation">
+          <ul class="nav-list">
+            <li><a href="#work">Work</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Connect</a></li>
+          </ul>
+        </nav>
+        <button class="mobile-toggle" aria-label="Toggle menu" aria-expanded="false">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- HERO -->
+    <section id="hero" class="hero">
+      <div class="container">
+        <div class="hero-grid">
+          <div class="hero-text">
+            <div class="hero-badge" id="heroBadge">✦ Creative Studio</div>
+            <h1 class="hero-name" id="heroName">Jamie Sutton</h1>
+            <div class="hero-role">
+              <span class="hero-role-label">I create</span>
+              <span class="hero-role-word" id="roleWord">visual stories</span>
+            </div>
+            <p class="hero-tagline" id="heroTagline">Crafting meaningful work that connects, inspires, and endures.</p>
+            <div class="hero-actions">
+              <a href="#work" class="btn-primary-hero">View my work ↓</a>
+              <a href="#contact" class="btn-secondary-hero">Let's talk</a>
+            </div>
+            <div class="hero-meta" id="heroMeta">
+              <span class="meta-item">📍 New York</span>
+              <span class="meta-item">✨ Available</span>
+              <span class="meta-item">📅 Est. 2018</span>
+            </div>
+          </div>
+          <div class="hero-visual">
+            <div class="hero-shape"></div>
+            <div class="hero-shape-2"></div>
+            <div class="hero-shape-3"></div>
+            <div class="hero-emoji" id="heroEmoji">🎨</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORK -->
+    <section id="work" class="work">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-number">01</span>
+          <h2 class="section-title" id="workTitle">Selected Work</h2>
+          <p class="section-sub" id="workSub">A collection of projects I'm proud of.</p>
+        </div>
+        <div class="work-grid" id="workGrid"></div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="about" class="about">
+      <div class="container">
+        <div class="section-header">
+          <span class="section-number">02</span>
+          <h2 class="section-title" id="aboutTitle">About Me</h2>
+          <p class="section-sub" id="aboutSub">The story behind the work.</p>
+        </div>
+        <div class="about-grid">
+          <div class="about-text">
+            <div class="about-bio" id="aboutBio"></div>
+            <div class="about-tools">
+              <h3 class="tools-label">Tools I work with</h3>
+              <div class="tools-tags" id="toolsTags"></div>
+            </div>
+          </div>
+          <div class="about-portrait">
+            <div class="portrait-frame">
+              <div class="portrait-placeholder" id="portraitPlaceholder">📸</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="contact">
+      <div class="container">
+        <div class="contact-inner">
+          <div class="section-header">
+            <span class="section-number">03</span>
+            <h2 class="section-title" id="contactTitle">Let's Connect</h2>
+            <p class="section-sub" id="contactSub">Have a project in mind? I'd love to hear about it.</p>
+          </div>
+          <div class="contact-content">
+            <a href="#" id="contactEmail" class="contact-email">hello@jamiesutton.com</a>
+            <p class="contact-note" id="contactNote">Available for collaborations, commissions, and conversations.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+      <div class="container">
+        <div class="footer-inner">
+          <p class="footer-copy" id="footerCopy">© 2025 Jamie Sutton</p>
+          <div class="footer-social" id="footerSocial"></div>
+        </div>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
