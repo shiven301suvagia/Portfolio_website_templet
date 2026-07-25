@@ -17,75 +17,75 @@
   <!-- ============================================================
        APP CONTAINER
        ============================================================ -->
-  <div id="app">
+  <div id="app" role="application" aria-label="Portfolio Builder">
     
     <!-- ===== SIDEBAR ===== -->
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
       <div class="sidebar-header">
-        <div class="logo">✦</div>
+        <div class="logo" aria-hidden="true">✦</div>
         <div>
           <h1>Portfolio Builder</h1>
           <span class="badge">v3.0</span>
         </div>
       </div>
 
-      <nav class="sidebar-nav">
-        <button class="nav-item active" data-step="identity">
-          <span class="nav-icon">👤</span>
+      <nav class="sidebar-nav" role="tablist">
+        <button class="nav-item active" data-step="identity" role="tab" aria-selected="true" aria-controls="step-identity" id="tab-identity">
+          <span class="nav-icon" aria-hidden="true">👤</span>
           <span class="nav-label">Identity</span>
-          <span class="nav-status" data-status="identity"></span>
+          <span class="nav-status" data-status="identity" aria-hidden="true"></span>
         </button>
-        <button class="nav-item" data-step="about">
-          <span class="nav-icon">📖</span>
+        <button class="nav-item" data-step="about" role="tab" aria-selected="false" aria-controls="step-about" id="tab-about">
+          <span class="nav-icon" aria-hidden="true">📖</span>
           <span class="nav-label">About</span>
-          <span class="nav-status" data-status="about"></span>
+          <span class="nav-status" data-status="about" aria-hidden="true"></span>
         </button>
-        <button class="nav-item" data-step="projects">
-          <span class="nav-icon">📁</span>
+        <button class="nav-item" data-step="projects" role="tab" aria-selected="false" aria-controls="step-projects" id="tab-projects">
+          <span class="nav-icon" aria-hidden="true">📁</span>
           <span class="nav-label">Projects</span>
-          <span class="nav-status" data-status="projects"></span>
+          <span class="nav-status" data-status="projects" aria-hidden="true"></span>
         </button>
-        <button class="nav-item" data-step="skills">
-          <span class="nav-icon">⚡</span>
+        <button class="nav-item" data-step="skills" role="tab" aria-selected="false" aria-controls="step-skills" id="tab-skills">
+          <span class="nav-icon" aria-hidden="true">⚡</span>
           <span class="nav-label">Skills</span>
-          <span class="nav-status" data-status="skills"></span>
+          <span class="nav-status" data-status="skills" aria-hidden="true"></span>
         </button>
-        <button class="nav-item" data-step="contact">
-          <span class="nav-icon">📫</span>
+        <button class="nav-item" data-step="contact" role="tab" aria-selected="false" aria-controls="step-contact" id="tab-contact">
+          <span class="nav-icon" aria-hidden="true">📫</span>
           <span class="nav-label">Contact</span>
-          <span class="nav-status" data-status="contact"></span>
+          <span class="nav-status" data-status="contact" aria-hidden="true"></span>
         </button>
-        <button class="nav-item" data-step="design">
-          <span class="nav-icon">🎨</span>
+        <button class="nav-item" data-step="design" role="tab" aria-selected="false" aria-controls="step-design" id="tab-design">
+          <span class="nav-icon" aria-hidden="true">🎨</span>
           <span class="nav-label">Design</span>
-          <span class="nav-status" data-status="design"></span>
+          <span class="nav-status" data-status="design" aria-hidden="true"></span>
         </button>
       </nav>
 
       <div class="sidebar-footer">
-        <button class="btn-generate" id="generateBtn">
+        <button class="btn-generate" id="generateBtn" aria-label="Generate your portfolio">
           <span>✨ Generate Portfolio</span>
         </button>
-        <button class="btn-export" id="exportBtn">
+        <button class="btn-export" id="exportBtn" aria-label="Export your portfolio">
           <span>📥 Export</span>
         </button>
       </div>
     </aside>
 
     <!-- ===== MAIN CONTENT ===== -->
-    <main class="main-content">
+    <main class="main-content" role="main">
       
       <!-- ===== HEADER ===== -->
       <header class="app-header">
         <div class="header-left">
-          <button class="menu-toggle" id="menuToggle" aria-label="Toggle sidebar">
+          <button class="menu-toggle" id="menuToggle" aria-label="Toggle sidebar" aria-expanded="false">
             <span></span><span></span><span></span>
           </button>
           <h2 id="stepTitle">Identity</h2>
         </div>
         <div class="header-right">
-          <span class="step-counter" id="stepCounter">1 / 6</span>
-          <button class="btn-preview" id="previewToggle">👁️ Live Preview</button>
+          <span class="step-counter" id="stepCounter" aria-live="polite">1 / 6</span>
+          <button class="btn-preview" id="previewToggle" aria-label="Toggle live preview">👁️ Live Preview</button>
         </div>
       </header>
 
@@ -93,7 +93,7 @@
       <div class="step-container">
         
         <!-- Step 1: Identity -->
-        <section class="step active" data-step="identity">
+        <section class="step active" data-step="identity" id="step-identity" role="tabpanel" aria-labelledby="tab-identity">
           <div class="step-header">
             <h3>👤 Identity</h3>
             <p>Tell us who you are. This is the first thing people will see.</p>
@@ -101,8 +101,8 @@
           <div class="step-body">
             <div class="form-grid two-col">
               <div class="form-group">
-                <label for="fullName">Full Name <span class="required">*</span></label>
-                <input type="text" id="fullName" placeholder="e.g., Jamie Sutton" />
+                <label for="fullName">Full Name <span class="required" aria-hidden="true">*</span></label>
+                <input type="text" id="fullName" placeholder="e.g., Jamie Sutton" aria-required="true" />
               </div>
               <div class="form-group">
                 <label for="title">Professional Title</label>
@@ -119,18 +119,18 @@
                 <input type="text" id="location" placeholder="e.g., New York, NY" />
               </div>
               <div class="form-group">
-                <label for="email">Email <span class="required">*</span></label>
-                <input type="email" id="email" placeholder="e.g., hello@jamiesutton.com" />
+                <label for="email">Email <span class="required" aria-hidden="true">*</span></label>
+                <input type="email" id="email" placeholder="e.g., hello@jamiesutton.com" aria-required="true" />
               </div>
             </div>
           </div>
           <div class="step-footer">
-            <button class="btn-next" data-next="about">Next Step →</button>
+            <button class="btn-next" data-next="about" aria-label="Next step: About">Next Step →</button>
           </div>
         </section>
 
         <!-- Step 2: About -->
-        <section class="step" data-step="about">
+        <section class="step" data-step="about" id="step-about" role="tabpanel" aria-labelledby="tab-about">
           <div class="step-header">
             <h3>📖 About</h3>
             <p>Share your story and what drives you.</p>
@@ -151,29 +151,29 @@
             </div>
           </div>
           <div class="step-footer">
-            <button class="btn-prev" data-prev="identity">← Back</button>
-            <button class="btn-next" data-next="projects">Next Step →</button>
+            <button class="btn-prev" data-prev="identity" aria-label="Previous step: Identity">← Back</button>
+            <button class="btn-next" data-next="projects" aria-label="Next step: Projects">Next Step →</button>
           </div>
         </section>
 
         <!-- Step 3: Projects -->
-        <section class="step" data-step="projects">
+        <section class="step" data-step="projects" id="step-projects" role="tabpanel" aria-labelledby="tab-projects">
           <div class="step-header">
             <h3>📁 Projects</h3>
             <p>Showcase your best work. Add as many as you like.</p>
           </div>
           <div class="step-body">
-            <div id="projectsList"></div>
-            <button class="btn-add-project" id="addProjectBtn">+ Add Project</button>
+            <div id="projectsList" role="list"></div>
+            <button class="btn-add-project" id="addProjectBtn" aria-label="Add a new project">+ Add Project</button>
           </div>
           <div class="step-footer">
-            <button class="btn-prev" data-prev="about">← Back</button>
-            <button class="btn-next" data-next="skills">Next Step →</button>
+            <button class="btn-prev" data-prev="about" aria-label="Previous step: About">← Back</button>
+            <button class="btn-next" data-next="skills" aria-label="Next step: Skills">Next Step →</button>
           </div>
         </section>
 
         <!-- Step 4: Skills -->
-        <section class="step" data-step="skills">
+        <section class="step" data-step="skills" id="step-skills" role="tabpanel" aria-labelledby="tab-skills">
           <div class="step-header">
             <h3>⚡ Skills</h3>
             <p>What tools, technologies, and skills do you work with?</p>
@@ -181,24 +181,24 @@
           <div class="step-body">
             <div class="form-group">
               <div class="skill-input-group">
-                <input type="text" id="skillInput" placeholder="e.g., Photography, Figma, React" />
-                <button class="btn-add-skill" id="addSkillBtn">Add</button>
+                <input type="text" id="skillInput" placeholder="e.g., Photography, Figma, React" aria-label="Enter a skill" />
+                <button class="btn-add-skill" id="addSkillBtn" aria-label="Add skill">Add</button>
               </div>
             </div>
-            <div id="skillsList" class="skills-tags"></div>
+            <div id="skillsList" class="skills-tags" role="list"></div>
             <div class="form-group" style="margin-top:1.5rem;">
               <label for="skillCategory">Skill Category (optional)</label>
               <input type="text" id="skillCategory" placeholder="e.g., Design Tools, Development, Languages" />
             </div>
           </div>
           <div class="step-footer">
-            <button class="btn-prev" data-prev="projects">← Back</button>
-            <button class="btn-next" data-next="contact">Next Step →</button>
+            <button class="btn-prev" data-prev="projects" aria-label="Previous step: Projects">← Back</button>
+            <button class="btn-next" data-next="contact" aria-label="Next step: Contact">Next Step →</button>
           </div>
         </section>
 
         <!-- Step 5: Contact -->
-        <section class="step" data-step="contact">
+        <section class="step" data-step="contact" id="step-contact" role="tabpanel" aria-labelledby="tab-contact">
           <div class="step-header">
             <h3>📫 Contact</h3>
             <p>How can people reach you?</p>
@@ -214,33 +214,18 @@
             </div>
             <div class="form-group">
               <label>Social Links</label>
-              <div id="socialLinks">
-                <div class="social-input-row">
-                  <select class="social-platform">
-                    <option value="instagram">Instagram</option>
-                    <option value="twitter">Twitter</option>
-                    <option value="linkedin">LinkedIn</option>
-                    <option value="github">GitHub</option>
-                    <option value="youtube">YouTube</option>
-                    <option value="vimeo">Vimeo</option>
-                    <option value="behance">Behance</option>
-                    <option value="dribbble">Dribbble</option>
-                  </select>
-                  <input type="url" class="social-url" placeholder="https://..." />
-                  <button class="btn-remove-social">×</button>
-                </div>
-              </div>
-              <button class="btn-add-social" id="addSocialBtn">+ Add Social Link</button>
+              <div id="socialLinks" role="list"></div>
+              <button class="btn-add-social" id="addSocialBtn" aria-label="Add a social link">+ Add Social Link</button>
             </div>
           </div>
           <div class="step-footer">
-            <button class="btn-prev" data-prev="skills">← Back</button>
-            <button class="btn-next" data-next="design">Next Step →</button>
+            <button class="btn-prev" data-prev="skills" aria-label="Previous step: Skills">← Back</button>
+            <button class="btn-next" data-next="design" aria-label="Next step: Design">Next Step →</button>
           </div>
         </section>
 
         <!-- Step 6: Design -->
-        <section class="step" data-step="design">
+        <section class="step" data-step="design" id="step-design" role="tabpanel" aria-labelledby="tab-design">
           <div class="step-header">
             <h3>🎨 Design</h3>
             <p>Customize the look and feel of your portfolio.</p>
@@ -249,23 +234,23 @@
             <div class="design-grid">
               <div class="form-group">
                 <label>Theme</label>
-                <div class="theme-selector" id="themeSelector">
-                  <button class="theme-option active" data-theme="light">☀️ Light</button>
-                  <button class="theme-option" data-theme="dark">🌙 Dark</button>
-                  <button class="theme-option" data-theme="warm">🔥 Warm</button>
-                  <button class="theme-option" data-theme="forest">🌿 Forest</button>
-                  <button class="theme-option" data-theme="ocean">🌊 Ocean</button>
+                <div class="theme-selector" id="themeSelector" role="radiogroup" aria-label="Theme selection">
+                  <button class="theme-option active" data-theme="light" role="radio" aria-checked="true" aria-label="Light theme">☀️ Light</button>
+                  <button class="theme-option" data-theme="dark" role="radio" aria-checked="false" aria-label="Dark theme">🌙 Dark</button>
+                  <button class="theme-option" data-theme="warm" role="radio" aria-checked="false" aria-label="Warm theme">🔥 Warm</button>
+                  <button class="theme-option" data-theme="forest" role="radio" aria-checked="false" aria-label="Forest theme">🌿 Forest</button>
+                  <button class="theme-option" data-theme="ocean" role="radio" aria-checked="false" aria-label="Ocean theme">🌊 Ocean</button>
                 </div>
               </div>
               <div class="form-group">
                 <label>Accent Color</label>
                 <div class="color-picker-group">
-                  <input type="color" id="accentColor" value="#d46a4a" />
-                  <input type="text" id="accentColorHex" value="#d46a4a" />
+                  <input type="color" id="accentColor" value="#d46a4a" aria-label="Choose accent color" />
+                  <input type="text" id="accentColorHex" value="#d46a4a" aria-label="Accent color hex value" />
                 </div>
               </div>
               <div class="form-group">
-                <label>Typography</label>
+                <label for="typography">Typography</label>
                 <select id="typography">
                   <option value="modern">Modern</option>
                   <option value="classic">Classic</option>
@@ -274,7 +259,7 @@
                 </select>
               </div>
               <div class="form-group">
-                <label>Hero Layout</label>
+                <label for="heroLayout">Hero Layout</label>
                 <select id="heroLayout">
                   <option value="left">Text Left</option>
                   <option value="center">Text Center</option>
@@ -282,7 +267,7 @@
                 </select>
               </div>
               <div class="form-group">
-                <label>Navigation Style</label>
+                <label for="navStyle">Navigation Style</label>
                 <select id="navStyle">
                   <option value="underline">Underline</option>
                   <option value="pill">Pill</option>
@@ -290,7 +275,7 @@
                 </select>
               </div>
               <div class="form-group">
-                <label>Project Card Style</label>
+                <label for="cardStyle">Project Card Style</label>
                 <select id="cardStyle">
                   <option value="elevated">Elevated</option>
                   <option value="flat">Flat</option>
@@ -298,11 +283,11 @@
                 </select>
               </div>
               <div class="form-group">
-                <label>Border Radius: <span id="radiusValue">12px</span></label>
-                <input type="range" id="borderRadius" min="0" max="24" value="12" />
+                <label for="borderRadius">Border Radius: <span id="radiusValue">12px</span></label>
+                <input type="range" id="borderRadius" min="0" max="24" value="12" aria-label="Border radius in pixels" />
               </div>
               <div class="form-group">
-                <label>Animation Level</label>
+                <label for="animationLevel">Animation Level</label>
                 <select id="animationLevel">
                   <option value="subtle">Subtle</option>
                   <option value="moderate">Moderate</option>
@@ -312,8 +297,8 @@
             </div>
           </div>
           <div class="step-footer">
-            <button class="btn-prev" data-prev="contact">← Back</button>
-            <button class="btn-generate-final" id="generateFinalBtn">✨ Generate Portfolio</button>
+            <button class="btn-prev" data-prev="contact" aria-label="Previous step: Contact">← Back</button>
+            <button class="btn-generate-final" id="generateFinalBtn" aria-label="Generate your portfolio now">✨ Generate Portfolio</button>
           </div>
         </section>
 
@@ -321,40 +306,75 @@
     </main>
 
     <!-- ===== PREVIEW PANEL ===== -->
-    <aside class="preview-panel" id="previewPanel">
+    <aside class="preview-panel" id="previewPanel" role="dialog" aria-label="Live preview">
       <div class="preview-header">
         <h3>Live Preview</h3>
-        <button class="btn-close-preview" id="closePreview">×</button>
+        <div class="preview-controls">
+          <button class="preview-device" data-device="desktop" aria-label="Desktop view" title="Desktop">🖥️</button>
+          <button class="preview-device" data-device="tablet" aria-label="Tablet view" title="Tablet">📱</button>
+          <button class="preview-device" data-device="mobile" aria-label="Mobile view" title="Mobile">📲</button>
+        </div>
+        <button class="btn-close-preview" id="closePreview" aria-label="Close preview">×</button>
       </div>
-      <div class="preview-frame" id="previewFrame">
-        <!-- Rendered by JavaScript -->
-      </div>
+      <div class="preview-frame" id="previewFrame"></div>
     </aside>
 
   </div>
 
   <!-- ============================================================
-       OUTPUT MODAL
+       SUCCESS MODAL
        ============================================================ -->
-  <div class="modal-overlay" id="outputModal">
+  <div class="modal-overlay" id="successModal" role="dialog" aria-modal="true" aria-labelledby="successTitle">
     <div class="modal">
       <div class="modal-header">
-        <h2>🎉 Your Portfolio is Ready!</h2>
-        <button class="modal-close" id="modalClose">×</button>
+        <h2 id="successTitle">🎉 Portfolio Generated Successfully!</h2>
+        <button class="modal-close" id="successClose" aria-label="Close">×</button>
       </div>
       <div class="modal-body">
-        <p>Download the files below or copy the code directly.</p>
-        <div class="output-tabs">
-          <button class="output-tab active" data-file="html">index.html</button>
-          <button class="output-tab" data-file="css">style.css</button>
-          <button class="output-tab" data-file="js">script.js</button>
-        </div>
-        <div class="output-code" id="outputCode">
-          <pre><code id="outputContent"></code></pre>
-        </div>
-        <div class="output-actions">
-          <button class="btn-download" id="downloadBtn">📥 Download All</button>
-          <button class="btn-copy" id="copyBtn">📋 Copy Code</button>
+        <div class="success-content">
+          <div class="success-icon">✨</div>
+          <p class="success-message">Your portfolio is ready to download and deploy.</p>
+          
+          <div class="download-grid">
+            <button class="download-btn" data-type="html" aria-label="Download HTML">
+              <span class="download-icon">📄</span>
+              <span class="download-label">index.html</span>
+            </button>
+            <button class="download-btn" data-type="css" aria-label="Download CSS">
+              <span class="download-icon">🎨</span>
+              <span class="download-label">style.css</span>
+            </button>
+            <button class="download-btn" data-type="js" aria-label="Download JavaScript">
+              <span class="download-icon">⚡</span>
+              <span class="download-label">script.js</span>
+            </button>
+            <button class="download-btn primary" id="downloadAllBtn" aria-label="Download all files as ZIP">
+              <span class="download-icon">📦</span>
+              <span class="download-label">Download All (ZIP)</span>
+            </button>
+          </div>
+
+          <div class="deployment-guide">
+            <h4>🚀 How to Host</h4>
+            <ol>
+              <li>Extract the ZIP file</li>
+              <li>Upload to <strong>GitHub Pages</strong>, <strong>Netlify</strong>, or <strong>Vercel</strong></li>
+              <li>Or simply open <code>index.html</code> in your browser</li>
+            </ol>
+          </div>
+
+          <button class="btn-advanced" id="showCodeBtn">View Generated Code</button>
+          <div class="code-container" id="codeContainer" style="display:none;">
+            <div class="output-tabs">
+              <button class="output-tab active" data-file="html">index.html</button>
+              <button class="output-tab" data-file="css">style.css</button>
+              <button class="output-tab" data-file="js">script.js</button>
+            </div>
+            <div class="output-code">
+              <pre><code id="outputContent"></code></pre>
+            </div>
+            <button class="btn-copy" id="copyBtn" aria-label="Copy code">📋 Copy Code</button>
+          </div>
         </div>
       </div>
     </div>
