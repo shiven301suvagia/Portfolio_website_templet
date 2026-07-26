@@ -164,15 +164,31 @@
               <textarea id="aboutStory" rows="6" placeholder="Tell your story in 2-3 paragraphs..."></textarea>
               <span class="helper">Share your journey, what inspires you, and what you're passionate about</span>
             </div>
-            <div class="form-grid two-col">
-              <div class="form-group">
-                <label for="aboutImage">Profile Image URL</label>
-                <input type="url" id="aboutImage" placeholder="https://example.com/your-photo.jpg" />
+            <div class="form-group">
+              <label>Profile Image</label>
+              <div class="image-upload-wrapper">
+                <div class="image-preview" id="profilePreview">
+                  <span class="preview-placeholder">📸</span>
+                  <img id="profilePreviewImg" style="display:none;" alt="Profile preview" />
+                </div>
+                <div class="upload-options">
+                  <label class="upload-btn">
+                    <span>📁 Upload Image</span>
+                    <input type="file" id="profileUpload" accept="image/*" />
+                  </label>
+                  <div class="file-info" id="profileFileInfo"></div>
+                  <div class="url-input-group">
+                    <input type="url" id="aboutImage" placeholder="Or enter image URL..." />
+                    <button class="btn-apply-url" id="applyProfileUrl">Apply</button>
+                  </div>
+                  <button class="btn-remove-image" id="removeProfileImage">× Remove</button>
+                </div>
               </div>
-              <div class="form-group">
-                <label for="aboutImageAlt">Image Alt Text</label>
-                <input type="text" id="aboutImageAlt" placeholder="Portrait of [Your Name]" />
-              </div>
+              <span class="helper">Upload a photo from your device (max 10MB) or enter a URL</span>
+            </div>
+            <div class="form-group">
+              <label for="aboutImageAlt">Image Alt Text</label>
+              <input type="text" id="aboutImageAlt" placeholder="Portrait of [Your Name]" />
             </div>
             <div class="form-group">
               <label for="experienceYears">Experience Years</label>
@@ -189,7 +205,7 @@
         <section class="step" data-step="projects">
           <div class="step-header">
             <h3>📁 Projects</h3>
-            <p>Showcase your best work. Drag to reorder, add as many as you like.</p>
+            <p>Showcase your best work. Upload images or videos, or use URLs.</p>
           </div>
           <div class="step-body">
             <div id="projectsList" role="list"></div>
@@ -465,13 +481,6 @@
                 <input type="checkbox" id="showYearInFooter" checked />
                 Show current year in footer
               </label>
-            </div>
-            <div class="form-group">
-              <label>
-                <input type="checkbox" id="enableAnalytics" />
-                Enable Google Analytics
-              </label>
-              <input type="text" id="analyticsId" placeholder="UA-XXXXXXXXX-X" style="margin-top:8px;display:none;" />
             </div>
           </div>
           <div class="step-footer">
