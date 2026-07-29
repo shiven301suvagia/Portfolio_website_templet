@@ -1,1 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Creative Portfolio Studio</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <!-- Security: Content Security Policy -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+</head>
+<body>
+  <div id="app" class="app-container" role="application" aria-label="Creative Portfolio Studio">
 
+    <!-- APPLICATION HEADER -->
+    <header id="app-header" class="app-header" role="banner" aria-label="Main navigation">
+      <div class="header-left">
+        <div class="logo-icon" role="img" aria-label="Studio logo" tabindex="0">
+          <i class="fas fa-cube"></i>
+        </div>
+        <span class="logo-text">Creative Portfolio Studio</span>
+        <span class="header-badge" aria-hidden="true">v2.0</span>
+      </div>
+      <div class="header-center">
+        <div class="preview-device-toggles" role="group" aria-label="Device preview controls">
+          <button class="device-btn active" data-device="desktop" id="preview-desktop" aria-label="Desktop preview" aria-pressed="true">
+            <i class="fas fa-desktop" aria-hidden="true"></i>
+          </button>
+          <button class="device-btn" data-device="tablet" id="preview-tablet" aria-label="Tablet preview" aria-pressed="false">
+            <i class="fas fa-tablet-alt" aria-hidden="true"></i>
+          </button>
+          <button class="device-btn" data-device="mobile" id="preview-mobile" aria-label="Mobile preview" aria-pressed="false">
+            <i class="fas fa-mobile-alt" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="header-action" id="exportScreenTrigger" aria-label="Export portfolio">
+          <i class="fas fa-file-export" aria-hidden="true"></i> Export
+        </button>
+        <button class="header-action primary" id="generateScreenTrigger" aria-label="Generate portfolio">
+          <i class="fas fa-rocket" aria-hidden="true"></i> Generate
+        </button>
+        <button class="header-action" id="themePickerTrigger" aria-label="Open theme settings">
+          <i class="fas fa-palette" aria-hidden="true"></i>
+        </button>
+        <button class="header-action" id="assetManagerTrigger" aria-label="Open asset manager">
+          <i class="fas fa-folder-open" aria-hidden="true"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN LAYOUT -->
+    <div class="main-layout" role="main">
+
+      <!-- SIDEBAR WIZARD -->
+      <aside id="sidebar-wizard" class="sidebar-wizard" role="navigation" aria-label="Portfolio wizard">
+        <div class="wizard-progress">
+          <span class="step-indicator" aria-live="polite">Step 3 of 9</span>
+          <div class="progress-track" role="progressbar" aria-valuenow="33" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-fill" id="wizardProgressFill" style="width: 33%;"></div>
+          </div>
+        </div>
+
+        <nav class="wizard-nav" aria-label="Wizard steps">
+          <ul>
+            <li class="step-item active" data-step="1" tabindex="0" role="button" aria-current="step">
+              <span class="step-num" aria-hidden="true">1</span> Create type
+            </li>
+            <li class="step-item" data-step="2" tabindex="0" role="button">
+              <span class="step-num" aria-hidden="true">2</span> Design style
+            </li>
+            <li class="step-item" data-step="3" tabindex="0" role="button">
+              <span class="step-num" aria-hidden="true">3</span> Layout
+            </li>
+            <li class="step-item" data-step="4" tabindex="0" role="button">
+              <span class="step-num" aria-hidden="true">4</span> Theme
+            </li>
+            <li class="step-item" data-step="5" tabindex="0" role="button">
+              <span class="step-num" aria-hidden="true">5</span> Information
+            </li>
+            <li class="step-item" data-step="6" tabindex="0" role="button">
+              <span class="step-num" aria-hidden="true">6</span> Showcases
+            </li>
+            <li class="step-item" data-step="7" tabindex="0" role="button">
+              <span class="step-num" aria-hidden="true">7</span> Assets
+            </li>
+            <li class="step-item" data-step="8" tabindex="0" role="button">
+              <span class="step-num" aria-hidden="true">8</span> Preview
+            </li>
+            <li class="step-item" data-step="9" tabindex="0" role="button">
+              <span class="step-num" aria-hidden="true">9</span> Generate
+            </li>
+          </ul>
+        </nav>
+
+        <div class="wizard-content">
+          <div id="wizardPanelContainer" class="wizard-panel">
+            <!-- Step 1 -->
+            <div class="step-panel" data-step="1" role="tabpanel">
+              <h3><i class="fas fa-layer-group" aria-hidden="true"></i> What are you creating?</h3>
+              <div class="option-grid" role="radiogroup" aria-label="Portfolio type">
+                <div class="option-card selected" role="radio" aria-checked="true" tabindex="0" data-value="website">
+                  <i class="fas fa-globe" aria-hidden="true"></i> Website
+                </div>
+                <div class="option-card" role="radio" aria-checked="false" tabindex="0" data-value="notion">
+                  <i class="fab fa-notion" aria-hidden="true"></i> Notion
+                </div>
+                <div class="option-card" role="radio" aria-checked="false" tabindex="0" data-value="pdf">
+                  <i class="fas fa-file-pdf" aria-hidden="true"></i> PDF
+                </div>
+                <div class="option-card" role="radio" aria-checked="false" tabindex="0" data-value="decide-later">
+                  <i class="fas fa-clock" aria-hidden="true"></i> Decide Later
+                </div>
+              </div>
+            </div>
+            <!-- Step 2 -->
+            <div class="step-panel" data-step="2" style="display:none;" role="tabpanel">
+              <h3><i class="fas fa-paint-brush" aria-hidden="true"></i> Design Style</h3>
+              <div class="style-grid" role="radiogroup" aria-label="Design style">
+                <div class="style-card active" role="radio" aria-checked="true" tabindex="0" data-value="minimal">Minimal</div>
+                <div class="style-card" role="radio" aria-checked="false" tabindex="0" data-value="bold">Bold</div>
+                <div class="style-card" role="radio" aria-checked="false" tabindex="0" data-value="elegant">Elegant</div>
+                <div class="style-card" role="radio" aria-checked="false" tabindex="0" data-value="playful">Playful</div>
+              </div>
+            </div>
+            <!-- Step 3 -->
+            <div class="step-panel" data-step="3" style="display:none;" role="tabpanel">
+              <h3><i class="fas fa-columns" aria-hidden="true"></i> Layout</h3>
+              <div class="layout-grid" role="radiogroup" aria-label="Layout style">
+                <div class="layout-card active" role="radio" aria-checked="true" tabindex="0" data-value="grid">
+                  <i class="fas fa-th-large" aria-hidden="true"></i> Grid
+                </div>
+                <div class="layout-card" role="radio" aria-checked="false" tabindex="0" data-value="list">
+                  <i class="fas fa-list-ul" aria-hidden="true"></i> List
+                </div>
+                <div class="layout-card" role="radio" aria-checked="false" tabindex="0" data-value="masonry">
+                  <i class="fas fa-masonry" aria-hidden="true"></i> Masonry
+                </div>
+              </div>
+            </div>
+            <!-- Step 4: Theme -->
+            <div class="step-panel" data-step="4" style="display:none;" role="tabpanel">
+              <h3><i class="fas fa-swatchbook" aria-hidden="true"></i> Theme &amp; Typography</h3>
+              <div class="theme-controls">
+                <div class="control-group">
+                  <label for="colorPicker">Color palette</label>
+                  <div class="color-picker" id="colorPicker" role="radiogroup" aria-label="Color selection">
+                    <span class="color-swatch" style="background:#1e1e2f;" role="radio" aria-checked="false" tabindex="0" data-color="#1e1e2f"></span>
+                    <span class="color-swatch" style="background:#2d2d44;" role="radio" aria-checked="false" tabindex="0" data-color="#2d2d44"></span>
+                    <span class="color-swatch active" style="background:#4a6cf7;" role="radio" aria-checked="true" tabindex="0" data-color="#4a6cf7"></span>
+                    <span class="color-swatch" style="background:#f9a826;" role="radio" aria-checked="false" tabindex="0" data-color="#f9a826"></span>
+                    <span class="color-swatch" style="background:#e94f4f;" role="radio" aria-checked="false" tabindex="0" data-color="#e94f4f"></span>
+                  </div>
+                </div>
+                <div class="control-group">
+                  <label for="typographyPicker">Typography</label>
+                  <div class="typography-picker" id="typographyPicker" role="radiogroup" aria-label="Typography selection">
+                    <span class="type-option active" role="radio" aria-checked="true" tabindex="0" data-value="inter">Inter</span>
+                    <span class="type-option" role="radio" aria-checked="false" tabindex="0" data-value="sf-pro">SF Pro</span>
+                    <span class="type-option" role="radio" aria-checked="false" tabindex="0" data-value="playfair">Playfair</span>
+                    <span class="type-option" role="radio" aria-checked="false" tabindex="0" data-value="mono">Mono</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- Step 5: Information -->
+            <div class="step-panel" data-step="5" style="display:none;" role="tabpanel">
+              <h3><i class="fas fa-id-card" aria-hidden="true"></i> Portfolio Information</h3>
+              <div class="info-form">
+                <input type="text" placeholder="Full name" value="Alex Rivera" id="info-name" aria-label="Full name" />
+                <input type="text" placeholder="Title / Role" value="Creative Director" id="info-title" aria-label="Title" />
+                <textarea placeholder="Bio / statement" id="info-bio" aria-label="Bio">Designing experiences that matter.</textarea>
+                <input type="email" placeholder="Email" value="alex@studio.com" id="info-email" aria-label="Email" />
+                <input type="text" placeholder="Social (Instagram)" value="@alexrivera" id="info-social" aria-label="Social media handle" />
+              </div>
+            </div>
+            <!-- Step 6: Showcases -->
+            <div class="step-panel" data-step="6" style="display:none;" role="tabpanel">
+              <h3><i class="fas fa-images" aria-hidden="true"></i> Showcases</h3>
+              <div class="showcase-manager" id="showcaseManager" role="list" aria-label="Showcases">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+            <!-- Step 7: Assets -->
+            <div class="step-panel" data-step="7" style="display:none;" role="tabpanel">
+              <h3><i class="fas fa-folder-tree" aria-hidden="true"></i> Asset Manager</h3>
+              <div class="asset-mini" id="assetMini" role="list" aria-label="Assets">
+                <!-- Rendered by JS -->
+              </div>
+            </div>
+            <!-- Step 8: Preview -->
+            <div class="step-panel" data-step="8" style="display:none;" role="tabpanel">
+              <h3><i class="fas fa-eye" aria-hidden="true"></i> Live Preview</h3>
+              <p class="preview-note">Preview panel is active. Use device toggles.</p>
+              <div class="customization-controls">
+                <div class="ctrl-group"><i class="fas fa-arrows-alt" aria-hidden="true"></i> Spacing</div>
+                <div class="ctrl-group"><i class="fas fa-font" aria-hidden="true"></i> Size</div>
+                <div class="ctrl-group"><i class="fas fa-border-all" aria-hidden="true"></i> Border</div>
+              </div>
+            </div>
+            <!-- Step 9: Generate -->
+            <div class="step-panel" data-step="9" style="display:none;" role="tabpanel">
+              <h3><i class="fas fa-check-circle" aria-hidden="true"></i> Generate Portfolio</h3>
+              <button class="generate-final-btn" id="generateFinalBtn">
+                <i class="fas fa-rocket" aria-hidden="true"></i> Generate now
+              </button>
+              <div class="export-options">
+                <button class="export-option" data-format="website">
+                  <i class="fas fa-globe" aria-hidden="true"></i> Website
+                </button>
+                <button class="export-option" data-format="notion">
+                  <i class="fab fa-notion" aria-hidden="true"></i> Notion
+                </button>
+                <button class="export-option" data-format="pdf">
+                  <i class="fas fa-file-pdf" aria-hidden="true"></i> PDF
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-footer">
+          <button class="wizard-btn secondary" id="wizardPrev">
+            <i class="fas fa-chevron-left" aria-hidden="true"></i> Back
+          </button>
+          <button class="wizard-btn primary" id="wizardNext">
+            Next <i class="fas fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- LIVE PREVIEW -->
+      <section id="live-preview" class="live-preview" aria-label="Portfolio preview">
+        <div class="preview-toolbar">
+          <span class="preview-label"><i class="fas fa-eye" aria-hidden="true"></i> Live Preview</span>
+          <div class="preview-actions">
+            <button class="preview-action-btn" id="refreshPreview" aria-label="Refresh preview">
+              <i class="fas fa-sync-alt" aria-hidden="true"></i>
+            </button>
+            <button class="preview-action-btn" id="expandPreview" aria-label="Expand preview">
+              <i class="fas fa-expand" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+        <div class="preview-frame-wrapper">
+          <div class="preview-frame" id="previewFrame" role="img" aria-label="Portfolio preview">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+        <div class="preview-status">
+          <span><i class="fas fa-circle" style="color:#4ade80;" aria-hidden="true"></i> Preview ready</span>
+          <span id="deviceLabel">Desktop</span>
+        </div>
+      </section>
+    </div>
+
+    <!-- TOAST CONTAINER -->
+    <div id="toastContainer" class="toast-container" role="status" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- MODAL CONTAINER -->
+    <div id="modalContainer" class="modal-container" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-overlay" id="modalOverlay"></div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3 id="modalTitle">Modal</h3>
+          <button class="modal-close" id="modalClose" aria-label="Close modal">
+            <i class="fas fa-times" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="modalBody">
+          <!-- Dynamic -->
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn secondary" id="modalCancel">Cancel</button>
+          <button class="modal-btn primary" id="modalConfirm">Confirm</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASSET MANAGER MODAL -->
+    <div id="assetManagerModal" class="modal-container asset-modal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="assetModalTitle">
+      <div class="modal-overlay" id="assetModalOverlay"></div>
+      <div class="modal-content" style="max-width:700px;">
+        <div class="modal-header">
+          <h3 id="assetModalTitle"><i class="fas fa-folder-open" aria-hidden="true"></i> Asset Manager</h3>
+          <button class="modal-close" id="assetModalClose" aria-label="Close asset manager">
+            <i class="fas fa-times" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="modal-body" id="assetModalBody">
+          <!-- Rendered by JS -->
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn secondary" id="assetModalCloseBtn">Close</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXPORT SCREEN -->
+    <div id="exportScreen" class="export-screen-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="exportTitle">
+      <div class="export-screen-panel">
+        <div class="export-header">
+          <h2 id="exportTitle"><i class="fas fa-file-export" aria-hidden="true"></i> Export Portfolio</h2>
+          <button class="export-close" id="exportClose" aria-label="Close export">
+            <i class="fas fa-times" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="export-body">
+          <div class="export-format-grid" role="radiogroup" aria-label="Export format">
+            <div class="export-format-card" role="radio" aria-checked="false" tabindex="0" data-format="website">
+              <i class="fas fa-globe" aria-hidden="true"></i> Website (HTML/CSS)
+            </div>
+            <div class="export-format-card" role="radio" aria-checked="false" tabindex="0" data-format="notion">
+              <i class="fab fa-notion" aria-hidden="true"></i> Notion embed
+            </div>
+            <div class="export-format-card" role="radio" aria-checked="false" tabindex="0" data-format="pdf">
+              <i class="fas fa-file-pdf" aria-hidden="true"></i> PDF (high-res)
+            </div>
+          </div>
+          <button class="export-action-btn" id="exportActionBtn">Export now</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- GENERATE SCREEN -->
+    <div id="generateScreen" class="generate-screen-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="generateTitle">
+      <div class="generate-screen-panel">
+        <div class="generate-header">
+          <h2 id="generateTitle"><i class="fas fa-rocket" aria-hidden="true"></i> Generate Portfolio</h2>
+          <button class="generate-close" id="generateClose" aria-label="Close generate">
+            <i class="fas fa-times" aria-hidden="true"></i>
+          </button>
+        </div>
+        <div class="generate-body">
+          <div class="generate-option">
+            <i class="fas fa-globe" aria-hidden="true"></i> Website – <span class="generate-status" id="genStatusWebsite">Ready</span>
+          </div>
+          <div class="generate-option">
+            <i class="fab fa-notion" aria-hidden="true"></i> Notion – <span class="generate-status" id="genStatusNotion">Ready</span>
+          </div>
+          <div class="generate-option">
+            <i class="fas fa-file-pdf" aria-hidden="true"></i> PDF – <span class="generate-status" id="genStatusPdf">Ready</span>
+          </div>
+          <button class="generate-final-big" id="generateAllBtn">Generate all formats</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
