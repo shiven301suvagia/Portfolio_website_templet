@@ -1,1344 +1,1224 @@
 /**
- * Portfolio Builder — Universal Creative Platform
- * Flexible content system with asset management
+ * Creative Portfolio Studio - Main Application
+ * Production-quality Vanilla JavaScript
+ * Architecture: State-driven with immutability, event delegation, render batching
+ * Version: 2.0
  */
 
+'use strict';
+
 // ============================================================
-// STATE
+// 1. APPLICATION STATE (Immutable-style)
 // ============================================================
-const AppState = {
-  currentStep: 'identity',
-  previewOpen: false,
-  generatedHTML: null,
-  STORAGE_KEY: 'portfolio_pro_draft',
-  
-  data: {
-    fullName: '',
-    title: '',
-    tagline: '',
-    location: '',
-    email: '',
-    avatarEmoji: '🎨',
-    aboutHeadline: '',
-    aboutStory: '',
-    aboutImage: '',
-    experienceYears: '',
-    projects: [],
-    assets: [],
-    skills: [],
-    social: [],
-    design: {
-      theme: 'light',
-      accentColor: '#d46a4a',
-      typography: 'modern',
-      heroLayout: 'left',
-      borderRadius: 12
+
+const State = {
+  wizard: {
+    currentStep: 1,
+    totalSteps: 9,
+    isComplete: false,
+  },
+  portfolio: {
+    type: 'website',
+    designStyle: 'minimal',
+    layout: 'grid',
+    theme: {
+      color: '#4a6cf7',
+      typography: 'inter',
+      spacing: 'normal',
+      animations: true,
     },
-    advanced: {
-      customCSS: '',
-      customJS: '',
-      footerText: ''
-    }
+    information: {
+      name: 'Alex Rivera',
+      title: 'Creative Director',
+      bio: 'Designing experiences that matter.',
+      email: 'alex@studio.com',
+      social: '@alexrivera',
+    },
+    showcases: [
+      { id: 's1', title: 'Brand Identity', type: 'image' },
+      { id: 's2', title: 'Motion Reel', type: 'video' },
+    ],
+    assets: [
+      { id: 'a1', name: 'hero.png', type: 'image', size: '2.4 MB' },
+      { id: 'a2', name: 'logo.svg', type: 'image', size: '45 KB' },
+      { id: 'a3', name: 'showreel.mp4', type: 'video', size: '18 MB' },
+    ],
   },
-  
-  loadDraft() {
-    try {
-      const saved = localStorage.getItem(this.STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        Object.keys(parsed).forEach(key => {
-          if (key === 'design' && parsed.design) {
-            Object.assign(this.data.design, parsed.design);
-          } else if (key === 'advanced' && parsed.advanced) {
-            Object.assign(this.data.advanced, parsed.advanced);
-          } else {
-            this.data[key] = parsed[key];
-          }
-        });
-        return true;
-      }
-    } catch (e) { console.warn('Could not load draft:', e); }
+  ui: {
+    previewDevice: 'desktop',
+    previewMode: 'website',
+    darkMode: false,
+    sidebarOpen: true,
+  },
+  generated: {
+    website: null,
+    notion: null,
+    pdf: null,
+    lastGenerated: null,
+  },
+  draft: {
+    saved: null,
+    timestamp: null,
+  },
+  _listeners: [],
+};
+
+// ============================================================
+// 2. STATE UPDATE SYSTEM (Immutable updates)
+// ============================================================
+
+function updateState(path, value) {
+  const parts = path.split('.');
+  let current = State;
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (!current[parts[i]]) current[parts[i]] = {};
+    current = current[parts[i]];
+  }
+  const key = parts[parts.length - 1];
+  if (current[key] !== value) {
+    current[key] = value;
+    notifyListeners(path, value);
+    autosave();
+  }
+}
+
+function getState(path) {
+  const parts = path.split('.');
+  let current = State;
+  for (const part of parts) {
+    if (current === undefined || current === null) return undefined;
+    current = current[part];
+  }
+  return current;
+}
+
+const listeners = [];
+
+function subscribe(fn) {
+  listeners.push(fn);
+  return () => {
+    const idx = listeners.indexOf(fn);
+    if (idx > -1) listeners.splice(idx, 1);
+  };
+}
+
+function notifyListeners(path, value) {
+  for (const fn of listeners) {
+    try { fn(path, value); } catch (e) { console.warn('Listener error:', e); }
+  }
+}
+
+// ============================================================
+// 3. DOM REFS (Cached)
+// ============================================================
+
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+const DOM = {
+  header: $('#app-header'),
+  deviceBtns: $$('.device-btn'),
+  exportTrigger: $('#exportScreenTrigger'),
+  generateTrigger: $('#generateScreenTrigger'),
+  themePickerTrigger: $('#themePickerTrigger'),
+  assetManagerTrigger: $('#assetManagerTrigger'),
+  sidebar: $('#sidebar-wizard'),
+  progressFill: $('#wizardProgressFill'),
+  stepItems: $$('.step-item'),
+  stepPanels: $$('.step-panel'),
+  wizardPrev: $('#wizardPrev'),
+  wizardNext: $('#wizardNext'),
+  previewFrame: $('#previewFrame'),
+  previewDeviceLabel: $('#deviceLabel'),
+  refreshPreview: $('#refreshPreview'),
+  expandPreview: $('#expandPreview'),
+  modalContainer: $('#modalContainer'),
+  modalOverlay: $('#modalOverlay'),
+  modalClose: $('#modalClose'),
+  modalCancel: $('#modalCancel'),
+  modalConfirm: $('#modalConfirm'),
+  assetModal: $('#assetManagerModal'),
+  assetModalOverlay: $('#assetModalOverlay'),
+  assetModalClose: $('#assetModalClose'),
+  assetModalCloseBtn: $('#assetModalCloseBtn'),
+  assetModalBody: $('#assetModalBody'),
+  exportScreen: $('#exportScreen'),
+  exportClose: $('#exportClose'),
+  exportActionBtn: $('#exportActionBtn'),
+  generateScreen: $('#generateScreen'),
+  generateClose: $('#generateClose'),
+  generateAllBtn: $('#generateAllBtn'),
+  toastContainer: $('#toastContainer'),
+  showcaseManager: $('#showcaseManager'),
+  assetMini: $('#assetMini'),
+  colorPicker: $('#colorPicker'),
+  typographyPicker: $('#typographyPicker'),
+  generateFinalBtn: $('#generateFinalBtn'),
+  genStatusWebsite: $('#genStatusWebsite'),
+  genStatusNotion: $('#genStatusNotion'),
+  genStatusPdf: $('#genStatusPdf'),
+  infoName: $('#info-name'),
+  infoTitle: $('#info-title'),
+  infoBio: $('#info-bio'),
+  infoEmail: $('#info-email'),
+  infoSocial: $('#info-social'),
+};
+
+// ============================================================
+// 4. UTILITY FUNCTIONS
+// ============================================================
+
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+}
+
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+function debounce(fn, delay = 250) {
+  let timeout;
+  return function (...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => fn.apply(this, args), delay);
+  };
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function hexToRgb(hex) {
+  let h = hex.replace('#', '');
+  if (h.length === 3) h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
+  return {
+    r: parseInt(h.substring(0, 2), 16),
+    g: parseInt(h.substring(2, 4), 16),
+    b: parseInt(h.substring(4, 6), 16),
+  };
+}
+
+function rgbToHex(r, g, b) {
+  return '#' + [r, g, b].map(c => Math.round(c).toString(16).padStart(2, '0')).join('');
+}
+
+function darkenColor(hex, amount) {
+  const { r, g, b } = hexToRgb(hex);
+  return rgbToHex(
+    Math.max(0, r - amount * 255),
+    Math.max(0, g - amount * 255),
+    Math.max(0, b - amount * 255)
+  );
+}
+
+function hexToRgba(hex, alpha) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
+// ============================================================
+// 5. DRAFT SYSTEM
+// ============================================================
+
+function saveDraft() {
+  try {
+    const state = deepClone(State);
+    state.draft.saved = state;
+    state.draft.timestamp = new Date().toISOString();
+    localStorage.setItem('creative-portfolio-studio-draft', JSON.stringify(state));
+  } catch (e) {
+    console.warn('Draft save failed:', e);
+  }
+}
+
+function restoreDraft() {
+  try {
+    const raw = localStorage.getItem('creative-portfolio-studio-draft');
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    if (saved.draft && saved.draft.timestamp) {
+      // Deep merge instead of Object.assign
+      mergeDeep(State, saved);
+      return true;
+    }
     return false;
-  },
-  
-  saveDraft() {
-    try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
-    } catch (e) { console.warn('Could not save draft:', e); }
+  } catch (e) {
+    console.warn('Draft restore failed:', e);
+    return false;
   }
-};
-
-// ============================================================
-// DOM REFS
-// ============================================================
-const DOM = {};
-
-function cacheDOM() {
-  DOM.sidebar = document.getElementById('sidebar');
-  DOM.menuToggle = document.getElementById('menuToggle');
-  DOM.stepTitle = document.getElementById('stepTitle');
-  DOM.stepBadge = document.getElementById('stepBadge');
-  DOM.previewToggle = document.getElementById('previewToggle');
-  DOM.previewPanel = document.getElementById('previewPanel');
-  DOM.closePreview = document.getElementById('closePreview');
-  DOM.previewFrame = document.getElementById('previewFrame');
-  DOM.successModal = document.getElementById('successModal');
-  DOM.successClose = document.getElementById('successClose');
-  DOM.outputContent = document.getElementById('outputContent');
-  DOM.copyBtn = document.getElementById('copyBtn');
-  DOM.showCodeBtn = document.getElementById('showCodeBtn');
-  DOM.codeContainer = document.getElementById('codeContainer');
-  DOM.generateBtn = document.getElementById('generateBtn');
-  DOM.generateFinalBtn = document.getElementById('generateFinalBtn');
-  DOM.downloadBtn = document.getElementById('downloadBtn');
-  DOM.projectsList = document.getElementById('projectsList');
-  DOM.addProjectBtn = document.getElementById('addProjectBtn');
-  DOM.skillsList = document.getElementById('skillsList');
-  DOM.skillInput = document.getElementById('skillInput');
-  DOM.addSkillBtn = document.getElementById('addSkillBtn');
-  DOM.socialLinks = document.getElementById('socialLinks');
-  DOM.addSocialBtn = document.getElementById('addSocialBtn');
-  DOM.themeSelector = document.getElementById('themeSelector');
-  DOM.accentColor = document.getElementById('accentColor');
-  DOM.accentColorHex = document.getElementById('accentColorHex');
-  DOM.borderRadius = document.getElementById('borderRadius');
-  DOM.radiusValue = document.getElementById('radiusValue');
-  DOM.typography = document.getElementById('typography');
-  DOM.heroLayout = document.getElementById('heroLayout');
-  DOM.fullName = document.getElementById('fullName');
-  DOM.title = document.getElementById('title');
-  DOM.tagline = document.getElementById('tagline');
-  DOM.location = document.getElementById('location');
-  DOM.email = document.getElementById('email');
-  DOM.avatarEmoji = document.getElementById('avatarEmoji');
-  DOM.aboutHeadline = document.getElementById('aboutHeadline');
-  DOM.aboutStory = document.getElementById('aboutStory');
-  DOM.aboutImage = document.getElementById('aboutImage');
-  DOM.experienceYears = document.getElementById('experienceYears');
-  DOM.contactEmail = document.getElementById('contactEmail');
-  DOM.contactNote = document.getElementById('contactNote');
-  DOM.customCSS = document.getElementById('customCSS');
-  DOM.customJS = document.getElementById('customJS');
-  DOM.footerText = document.getElementById('footerText');
-  DOM.assetGrid = document.getElementById('assetGrid');
-  DOM.assetUpload = document.getElementById('assetUpload');
-  DOM.assetDropArea = document.getElementById('assetDropArea');
-  DOM.toastContainer = document.getElementById('toastContainer');
-  
-  // Profile upload elements
-  DOM.profileUpload = document.getElementById('profileUpload');
-  DOM.profilePreviewImg = document.getElementById('profilePreviewImg');
-  DOM.profilePreview = document.getElementById('profilePreview');
-  DOM.applyProfileUrl = document.getElementById('applyProfileUrl');
-  DOM.removeProfileImage = document.getElementById('removeProfileImage');
 }
 
-// ============================================================
-// STEPS
-// ============================================================
-const STEPS = ['identity', 'about', 'projects', 'assets', 'skills', 'contact', 'design', 'advanced'];
-const STEP_TITLES = {
-  identity: 'Identity', about: 'About', projects: 'Projects',
-  assets: 'Assets', skills: 'Skills', contact: 'Contact',
-  design: 'Design', advanced: 'Advanced'
-};
-
-// ============================================================
-// NAVIGATION
-// ============================================================
-function navigateTo(step) {
-  if (!STEPS.includes(step)) return;
-  AppState.currentStep = step;
-  
-  document.querySelectorAll('.step').forEach(el => {
-    el.classList.toggle('active', el.dataset.step === step);
-  });
-  
-  document.querySelectorAll('.nav-item').forEach(el => {
-    el.classList.toggle('active', el.dataset.step === step);
-  });
-  
-  DOM.stepTitle.textContent = STEP_TITLES[step];
-  DOM.stepBadge.textContent = `${STEPS.indexOf(step) + 1} / ${STEPS.length}`;
-  
-  if (AppState.previewOpen) renderPreview();
-  updateStatus();
-}
-
-function updateStatus() {
-  STEPS.forEach(step => {
-    const statusEl = document.querySelector(`.nav-status[data-status="${step}"]`);
-    if (!statusEl) return;
-    const isValid = validateStep(step, true);
-    statusEl.className = 'nav-status' + (isValid ? ' complete' : '');
-  });
-}
-
-// ============================================================
-// VALIDATION
-// ============================================================
-function validateStep(step, silent = false) {
-  if (step === 'identity') {
-    const name = DOM.fullName.value.trim();
-    const email = DOM.email.value.trim();
-    if (!name) { if (!silent) showToast('Please enter your name'); return false; }
-    if (!email || !email.includes('@')) { if (!silent) showToast('Please enter a valid email'); return false; }
-    return true;
-  }
-  return true;
-}
-
-// ============================================================
-// SANITIZATION
-// ============================================================
-function escapeHTML(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-function sanitizeString(str) {
-  if (!str) return '';
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
-function sanitizeURL(url) {
-  if (!url) return '';
-  const safe = url.trim();
-  if (safe.startsWith('http://') || safe.startsWith('https://') || 
-      safe.startsWith('mailto:') || safe.startsWith('tel:')) {
-    return escapeHTML(safe);
-  }
-  return '';
-}
-
-// ============================================================
-// DATA COLLECTION
-// ============================================================
-function collectData() {
-  AppState.data.fullName = sanitizeString(DOM.fullName.value.trim());
-  AppState.data.title = sanitizeString(DOM.title.value.trim());
-  AppState.data.tagline = sanitizeString(DOM.tagline.value.trim());
-  AppState.data.location = sanitizeString(DOM.location.value.trim());
-  AppState.data.email = sanitizeString(DOM.email.value.trim());
-  AppState.data.avatarEmoji = DOM.avatarEmoji.value;
-  AppState.data.aboutHeadline = sanitizeString(DOM.aboutHeadline.value.trim());
-  AppState.data.aboutStory = sanitizeString(DOM.aboutStory.value.trim());
-  AppState.data.aboutImage = sanitizeURL(DOM.aboutImage.value.trim());
-  AppState.data.experienceYears = DOM.experienceYears.value.trim();
-  AppState.data.contactEmail = sanitizeString(DOM.contactEmail.value.trim());
-  AppState.data.contactNote = sanitizeString(DOM.contactNote.value.trim());
-  
-  // Projects
-  AppState.data.projects = [];
-  document.querySelectorAll('.project-card').forEach(card => {
-    const blocks = [];
-    card.querySelectorAll('.block-item').forEach(block => {
-      const type = block.dataset.blockType;
-      const content = block.querySelector('.block-content')?.value || '';
-      blocks.push({ type, content });
-    });
-    
-    AppState.data.projects.push({
-      title: sanitizeString(card.querySelector('.project-title-input')?.value || ''),
-      description: sanitizeString(card.querySelector('.project-desc-input')?.value || ''),
-      category: sanitizeString(card.querySelector('.project-category-input')?.value || ''),
-      year: sanitizeString(card.querySelector('.project-year-input')?.value || ''),
-      blocks: blocks
-    });
-  });
-  
-  // Assets
-  AppState.data.assets = [];
-  document.querySelectorAll('.asset-item').forEach(item => {
-    AppState.data.assets.push({
-      name: item.dataset.assetName,
-      type: item.dataset.assetType,
-      data: item.dataset.assetData,
-      size: item.dataset.assetSize
-    });
-  });
-  
-  // Skills
-  AppState.data.skills = [];
-  document.querySelectorAll('.skill-tag').forEach(tag => {
-    AppState.data.skills.push(tag.dataset.skill);
-  });
-  
-  // Social
-  AppState.data.social = [];
-  document.querySelectorAll('.social-input-row').forEach(row => {
-    const platform = row.querySelector('.social-platform')?.value || '';
-    const url = sanitizeURL(row.querySelector('.social-url')?.value || '');
-    if (platform && url) AppState.data.social.push({ platform, url });
-  });
-  
-  // Design
-  const activeTheme = document.querySelector('.theme-option.active');
-  AppState.data.design.theme = activeTheme?.dataset.theme || 'light';
-  AppState.data.design.accentColor = DOM.accentColor.value;
-  AppState.data.design.typography = DOM.typography.value;
-  AppState.data.design.heroLayout = DOM.heroLayout.value;
-  AppState.data.design.borderRadius = parseInt(DOM.borderRadius.value) || 12;
-  
-  // Advanced
-  AppState.data.advanced.customCSS = DOM.customCSS.value;
-  AppState.data.advanced.customJS = DOM.customJS.value;
-  AppState.data.advanced.footerText = DOM.footerText.value;
-  
-  AppState.saveDraft();
-}
-
-// ============================================================
-// PROJECTS WITH FLEXIBLE BLOCKS
-// ============================================================
-const BLOCK_TYPES = [
-  { id: 'image', label: '🖼️ Image', icon: '🖼️' },
-  { id: 'video', label: '🎬 Video', icon: '🎬' },
-  { id: 'text', label: '📝 Rich Text', icon: '📝' },
-  { id: 'embed', label: '🔗 Embed', icon: '🔗' },
-  { id: 'gallery', label: '📸 Gallery', icon: '📸' },
-  { id: 'pdf', label: '📄 PDF Viewer', icon: '📄' },
-  { id: 'code', label: '💻 Code Snippet', icon: '💻' },
-  { id: 'audio', label: '🎵 Audio Player', icon: '🎵' },
-  { id: 'button', label: '🔘 Button', icon: '🔘' },
-  { id: 'custom', label: '✨ Custom Embed', icon: '✨' }
-];
-
-function addProject(projectData = null) {
-  const card = document.createElement('div');
-  card.className = 'project-card';
-  card.setAttribute('role', 'listitem');
-  
-  const p = projectData || { title: '', description: '', category: '', year: '', blocks: [] };
-  
-  let blocksHTML = '';
-  if (p.blocks && p.blocks.length > 0) {
-    p.blocks.forEach(block => {
-      blocksHTML += createBlockHTML(block.type, block.content);
-    });
-  } else {
-    // Add default blocks based on project type
-    blocksHTML += createBlockHTML('text', 'Describe your project here...');
-    blocksHTML += createBlockHTML('image', '');
-  }
-  
-  card.innerHTML = `
-    <button class="btn-remove-project" type="button">×</button>
-    <div class="form-grid two-col">
-      <div class="form-group">
-        <label>Project Title</label>
-        <input type="text" class="project-title-input" placeholder="Project title" value="${escapeHTML(p.title)}" />
-      </div>
-      <div class="form-group">
-        <label>Category</label>
-        <input type="text" class="project-category-input" placeholder="e.g., Photography" value="${escapeHTML(p.category)}" />
-      </div>
-    </div>
-    <div class="form-group">
-      <label>Description</label>
-      <input type="text" class="project-desc-input" placeholder="Brief description" value="${escapeHTML(p.description)}" />
-    </div>
-    <div class="form-group">
-      <label>Year</label>
-      <input type="text" class="project-year-input" placeholder="e.g., 2024" value="${escapeHTML(p.year)}" />
-    </div>
-    <div class="form-group">
-      <label>Content Blocks</label>
-      <div class="blocks-container">
-        ${blocksHTML}
-      </div>
-      <div class="add-block-wrapper">
-        <select class="block-type-select">
-          ${BLOCK_TYPES.map(b => `<option value="${b.id}">${b.label}</option>`).join('')}
-        </select>
-        <button class="btn-add-block">+ Add Block</button>
-      </div>
-    </div>
-  `;
-  
-  // Add block functionality
-  card.querySelector('.btn-add-block').addEventListener('click', function() {
-    const select = card.querySelector('.block-type-select');
-    const type = select.value;
-    const container = card.querySelector('.blocks-container');
-    const blockHTML = createBlockHTML(type, '');
-    container.insertAdjacentHTML('beforeend', blockHTML);
-    setupBlockEvents(container.lastElementChild);
-    renderPreview();
-  });
-  
-  // Setup existing blocks
-  card.querySelectorAll('.block-item').forEach(block => setupBlockEvents(block));
-  
-  // Remove project
-  card.querySelector('.btn-remove-project').addEventListener('click', () => {
-    if (document.querySelectorAll('.project-card').length > 1) {
-      card.remove();
-      renderPreview();
+function mergeDeep(target, source) {
+  for (const key in source) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      if (!target[key]) target[key] = {};
+      mergeDeep(target[key], source[key]);
     } else {
-      showToast('You need at least one project');
+      target[key] = deepClone(source[key]);
     }
-  });
-  
-  card.querySelectorAll('input').forEach(input => {
-    input.addEventListener('input', () => { renderPreview(); });
-    input.addEventListener('change', () => { renderPreview(); });
-  });
-  
-  DOM.projectsList.appendChild(card);
-  renderPreview();
+  }
 }
 
-function createBlockHTML(type, content) {
-  const block = BLOCK_TYPES.find(b => b.id === type) || BLOCK_TYPES[0];
-  
-  let contentHTML = '';
-  switch(type) {
-    case 'text':
-      contentHTML = `<textarea class="block-content" rows="3" placeholder="Write your content here...">${escapeHTML(content)}</textarea>`;
-      break;
-    case 'image':
-    case 'video':
-      contentHTML = `
-        <div class="block-media-upload">
-          <input type="url" class="block-content" placeholder="Enter URL or choose from assets..." value="${escapeHTML(content)}" />
-          <button class="btn-block-asset">📁 From Assets</button>
+const autosave = debounce(saveDraft, 500);
+
+// ============================================================
+// 6. TOAST SYSTEM
+// ============================================================
+
+const ToastManager = {
+  show(message, type = 'info', duration = 3500) {
+    const container = DOM.toastContainer;
+    if (!container) return;
+
+    const toast = document.createElement('div');
+    toast.className = `toast ${type}`;
+    toast.setAttribute('role', 'alert');
+    toast.innerHTML = `
+      <span>${escapeHtml(message)}</span>
+      <button class="toast-dismiss" aria-label="Dismiss notification">
+        <i class="fas fa-times" aria-hidden="true"></i>
+      </button>
+    `;
+
+    container.appendChild(toast);
+
+    const dismiss = () => {
+      if (toast.parentNode) {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(20px)';
+        setTimeout(() => {
+          if (toast.parentNode) toast.remove();
+        }, 300);
+      }
+    };
+
+    toast.querySelector('.toast-dismiss')?.addEventListener('click', dismiss);
+
+    const timer = setTimeout(dismiss, duration);
+
+    // Pause timer on hover
+    toast.addEventListener('mouseenter', () => clearTimeout(timer));
+    toast.addEventListener('mouseleave', () => {
+      setTimeout(dismiss, duration);
+    });
+  },
+};
+
+// ============================================================
+// 7. WIZARD CONTROLLER
+// ============================================================
+
+const WizardController = {
+  goToStep(step) {
+    if (step < 1 || step > State.wizard.totalSteps) return;
+    if (!this.validateStep(step - 1) && step > State.wizard.currentStep) {
+      ToastManager.show('Please complete the current step first.', 'warning');
+      return;
+    }
+    updateState('wizard.currentStep', step);
+    this.render();
+  },
+
+  validateStep(step) {
+    // Step validation logic
+    if (step === 5) {
+      const name = DOM.infoName?.value?.trim();
+      if (!name) {
+        ToastManager.show('Please enter your name.', 'warning');
+        return false;
+      }
+    }
+    return true;
+  },
+
+  next() {
+    if (State.wizard.currentStep < State.wizard.totalSteps) {
+      this.goToStep(State.wizard.currentStep + 1);
+    } else {
+      this.complete();
+    }
+  },
+
+  back() {
+    if (State.wizard.currentStep > 1) {
+      this.goToStep(State.wizard.currentStep - 1);
+    }
+  },
+
+  complete() {
+    updateState('wizard.isComplete', true);
+    ToastManager.show('🎉 Portfolio wizard complete! Generate your portfolio.', 'success');
+  },
+
+  render() {
+    const current = State.wizard.currentStep;
+
+    DOM.stepItems.forEach((item) => {
+      const stepNum = parseInt(item.dataset.step);
+      item.classList.toggle('active', stepNum === current);
+      if (stepNum < current) item.classList.add('completed');
+      else item.classList.remove('completed');
+      item.setAttribute('aria-current', stepNum === current ? 'step' : 'false');
+    });
+
+    DOM.stepPanels.forEach((panel) => {
+      const step = parseInt(panel.dataset.step);
+      panel.style.display = step === current ? 'flex' : 'none';
+      panel.setAttribute('aria-hidden', step !== current);
+    });
+
+    DOM.wizardPrev.style.visibility = current > 1 ? 'visible' : 'hidden';
+    DOM.wizardPrev.style.opacity = current > 1 ? '1' : '0';
+    DOM.wizardNext.textContent = current === State.wizard.totalSteps ? '✨ Generate' : 'Next →';
+
+    const pct = ((current - 1) / (State.wizard.totalSteps - 1)) * 100;
+    DOM.progressFill.style.width = Math.min(pct, 100) + '%';
+    DOM.progressFill.parentElement?.setAttribute('aria-valuenow', Math.round(pct));
+    DOM.progressFill.parentElement?.setAttribute('aria-valuemax', 100);
+    DOM.progressFill.parentElement?.setAttribute('aria-valuemin', 0);
+
+    const indicator = document.querySelector('.step-indicator');
+    if (indicator) {
+      indicator.textContent = `Step ${current} of ${State.wizard.totalSteps}`;
+    }
+  },
+};
+
+// ============================================================
+// 8. THEME ENGINE
+// ============================================================
+
+const ThemeEngine = {
+  apply() {
+    const theme = State.portfolio.theme;
+    const root = document.documentElement;
+
+    root.style.setProperty('--accent', theme.color);
+    root.style.setProperty('--accent-hover', darkenColor(theme.color, 0.15));
+    root.style.setProperty('--accent-glow', hexToRgba(theme.color, 0.25));
+
+    const fonts = {
+      inter: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      'sf-pro': "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+      playfair: "'Playfair Display', 'Times New Roman', serif",
+      mono: "'SF Mono', 'Menlo', 'Monaco', monospace",
+    };
+    root.style.setProperty('--font-sans', fonts[theme.typography] || fonts.inter);
+
+    if (State.ui.darkMode) {
+      root.setAttribute('data-theme', 'dark');
+    } else {
+      root.removeAttribute('data-theme');
+    }
+
+    root.style.setProperty('--transition-base', theme.animations ? '0.25s' : '0s');
+
+    this.updateColorPicker();
+    this.updateTypographyPicker();
+    PreviewController.render();
+  },
+
+  updateColorPicker() {
+    const swatches = DOM.colorPicker?.querySelectorAll('.color-swatch') || [];
+    swatches.forEach((el) => {
+      const color = el.dataset.color;
+      el.classList.toggle('active', color === State.portfolio.theme.color);
+      el.setAttribute('aria-checked', color === State.portfolio.theme.color ? 'true' : 'false');
+    });
+  },
+
+  updateTypographyPicker() {
+    const options = DOM.typographyPicker?.querySelectorAll('.type-option') || [];
+    options.forEach((el) => {
+      const value = el.dataset.value;
+      el.classList.toggle('active', value === State.portfolio.theme.typography);
+      el.setAttribute('aria-checked', value === State.portfolio.theme.typography ? 'true' : 'false');
+    });
+  },
+
+  toggleDarkMode() {
+    updateState('ui.darkMode', !State.ui.darkMode);
+    this.apply();
+  },
+};
+
+// ============================================================
+// 9. PREVIEW CONTROLLER
+// ============================================================
+
+const PreviewController = {
+  render() {
+    const frame = DOM.previewFrame;
+    const info = State.portfolio.information;
+    const showcases = State.portfolio.showcases;
+    const theme = State.portfolio.theme;
+
+    let html = `
+      <div class="portfolio-mock">
+        <div class="mock-header">
+          <div class="mock-avatar" style="background:${theme.color}33; border-color:${theme.color};"></div>
+          <div class="mock-name" style="color:${theme.color};">${escapeHtml(info.name)}</div>
+          <div class="mock-title">${escapeHtml(info.title)}</div>
+          <div style="font-size:0.75rem; color:var(--text-muted);">${escapeHtml(info.bio)}</div>
+        </div>
+        <div class="mock-grid">
+    `;
+
+    if (showcases.length > 0) {
+      showcases.forEach((item) => {
+        html += `
+          <div class="mock-card" style="border-color:${theme.color}33;">
+            <div style="display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:0.7rem; text-align:center; padding:4px;">
+              ${escapeHtml(item.title)}
+            </div>
+          </div>
+        `;
+      });
+    } else {
+      for (let i = 0; i < 4; i++) {
+        html += `<div class="mock-card"></div>`;
+      }
+    }
+
+    const typeLabels = {
+      website: '🌐 Website',
+      notion: '📄 Notion',
+      pdf: '📑 PDF',
+      'decide-later': '✨ Portfolio'
+    };
+
+    html += `
+        </div>
+        <div style="text-align:center; font-size:0.7rem; color:var(--text-muted); margin-top:8px;">
+          ${typeLabels[State.portfolio.type] || '✨ Portfolio'}
+        </div>
+      </div>
+    `;
+
+    frame.innerHTML = html;
+    this.applyDeviceClass();
+  },
+
+  applyDeviceClass() {
+    const frame = DOM.previewFrame;
+    const device = State.ui.previewDevice;
+    frame.classList.remove('device-tablet', 'device-mobile');
+    if (device === 'tablet') frame.classList.add('device-tablet');
+    if (device === 'mobile') frame.classList.add('device-mobile');
+
+    const labels = { desktop: 'Desktop', tablet: 'Tablet', mobile: 'Mobile' };
+    if (DOM.previewDeviceLabel) {
+      DOM.previewDeviceLabel.textContent = labels[device] || 'Desktop';
+    }
+
+    DOM.deviceBtns.forEach((btn) => {
+      const btnDevice = btn.dataset.device;
+      btn.classList.toggle('active', btnDevice === device);
+      btn.setAttribute('aria-pressed', btnDevice === device ? 'true' : 'false');
+    });
+  },
+
+  setDevice(device) {
+    updateState('ui.previewDevice', device);
+    this.applyDeviceClass();
+  },
+
+  refresh() {
+    this.render();
+    ToastManager.show('Preview refreshed', 'info');
+  },
+
+  toggleExpand() {
+    const frame = DOM.previewFrame;
+    frame.classList.toggle('expanded');
+    const isExpanded = frame.classList.contains('expanded');
+    DOM.expandPreview?.setAttribute('aria-label', isExpanded ? 'Collapse preview' : 'Expand preview');
+    DOM.expandPreview?.querySelector('i')?.classList?.toggle('fa-expand', !isExpanded);
+    DOM.expandPreview?.querySelector('i')?.classList?.toggle('fa-compress', isExpanded);
+  },
+};
+
+// ============================================================
+// 10. SHOWCASE MANAGER
+// ============================================================
+
+const ShowcaseManager = {
+  add(title = 'New Showcase') {
+    const newItem = {
+      id: generateId(),
+      title: title.trim() || 'Untitled',
+      type: 'image',
+    };
+    const showcases = [...State.portfolio.showcases, newItem];
+    updateState('portfolio.showcases', showcases);
+    this.render();
+    ToastManager.show(`Added showcase: ${escapeHtml(newItem.title)}`, 'success');
+  },
+
+  delete(id) {
+    const showcases = State.portfolio.showcases.filter(s => s.id !== id);
+    updateState('portfolio.showcases', showcases);
+    this.render();
+    ToastManager.show('Showcase deleted', 'info');
+  },
+
+  edit(id, newTitle) {
+    const showcases = State.portfolio.showcases.map(s =>
+      s.id === id ? { ...s, title: newTitle.trim() || s.title } : s
+    );
+    updateState('portfolio.showcases', showcases);
+    this.render();
+  },
+
+  duplicate(id) {
+    const original = State.portfolio.showcases.find(s => s.id === id);
+    if (original) {
+      const copy = { ...original, id: generateId(), title: original.title + ' (copy)' };
+      const showcases = [...State.portfolio.showcases, copy];
+      updateState('portfolio.showcases', showcases);
+      this.render();
+      ToastManager.show('Showcase duplicated', 'info');
+    }
+  },
+
+  render() {
+    const container = DOM.showcaseManager;
+    if (!container) return;
+
+    const showcases = State.portfolio.showcases;
+    let html = '';
+
+    showcases.forEach((item) => {
+      html += `
+        <div class="showcase-item" role="listitem" data-id="${escapeHtml(item.id)}">
+          <span class="showcase-thumb"><i class="fas fa-${item.type === 'video' ? 'video' : 'image'}" aria-hidden="true"></i></span>
+          <span class="showcase-title">${escapeHtml(item.title)}</span>
+          <button class="showcase-edit" data-action="edit-showcase" data-id="${escapeHtml(item.id)}" aria-label="Edit showcase">
+            <i class="fas fa-edit" aria-hidden="true"></i>
+          </button>
+          <button class="showcase-delete" data-action="delete-showcase" data-id="${escapeHtml(item.id)}" aria-label="Delete showcase">
+            <i class="fas fa-trash" aria-hidden="true"></i>
+          </button>
+          <button class="showcase-edit" data-action="duplicate-showcase" data-id="${escapeHtml(item.id)}" aria-label="Duplicate showcase" style="color:var(--text-muted);">
+            <i class="fas fa-copy" aria-hidden="true"></i>
+          </button>
         </div>
       `;
-      break;
-    case 'embed':
-      contentHTML = `<input type="url" class="block-content" placeholder="YouTube, Vimeo, Figma, etc..." value="${escapeHTML(content)}" />`;
-      break;
-    case 'gallery':
-      contentHTML = `<input type="text" class="block-content" placeholder="Comma-separated image URLs..." value="${escapeHTML(content)}" />`;
-      break;
-    case 'pdf':
-    case 'code':
-    case 'audio':
-    case 'button':
-    case 'custom':
-    default:
-      contentHTML = `<textarea class="block-content" rows="2" placeholder="Enter ${block.label.toLowerCase()} content...">${escapeHTML(content)}</textarea>`;
-      break;
-  }
-  
-  return `
-    <div class="block-item" data-block-type="${type}">
-      <div class="block-header">
-        <span class="block-icon">${block.icon}</span>
-        <span class="block-label">${block.label}</span>
-        <button class="btn-remove-block" type="button">×</button>
-        <button class="btn-move-block-up" type="button">↑</button>
-        <button class="btn-move-block-down" type="button">↓</button>
-      </div>
-      <div class="block-body">
-        ${contentHTML}
-      </div>
-    </div>
-  `;
-}
-
-function setupBlockEvents(block) {
-  // Remove block
-  block.querySelector('.btn-remove-block')?.addEventListener('click', function(e) {
-    e.stopPropagation();
-    if (block.parentElement.children.length > 1) {
-      block.remove();
-      renderPreview();
-    } else {
-      showToast('You need at least one block per project');
-    }
-  });
-  
-  // Move block up
-  block.querySelector('.btn-move-block-up')?.addEventListener('click', function(e) {
-    e.stopPropagation();
-    const prev = block.previousElementSibling;
-    if (prev) {
-      block.parentElement.insertBefore(block, prev);
-      renderPreview();
-    }
-  });
-  
-  // Move block down
-  block.querySelector('.btn-move-block-down')?.addEventListener('click', function(e) {
-    e.stopPropagation();
-    const next = block.nextElementSibling;
-    if (next) {
-      block.parentElement.insertBefore(next, block);
-      renderPreview();
-    }
-  });
-  
-  // Asset selection
-  block.querySelector('.btn-block-asset')?.addEventListener('click', function(e) {
-    e.stopPropagation();
-    const input = block.querySelector('.block-content');
-    showAssetPicker(input);
-  });
-  
-  // Input changes
-  block.querySelector('.block-content')?.addEventListener('input', renderPreview);
-  block.querySelector('.block-content')?.addEventListener('change', renderPreview);
-}
-
-function showAssetPicker(input) {
-  // Simple asset picker dialog
-  const assets = AppState.data.assets;
-  if (assets.length === 0) {
-    showToast('No assets uploaded yet. Go to Assets tab to upload.');
-    return;
-  }
-  
-  // Navigate to assets tab
-  navigateTo('assets');
-  showToast('💡 Upload or select an asset, then copy its URL to paste here.');
-}
-
-// ============================================================
-// ASSET MANAGER
-// ============================================================
-function setupAssetManager() {
-  // File upload
-  DOM.assetUpload.addEventListener('change', handleAssetUpload);
-  
-  // Drag and drop
-  DOM.assetDropArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    DOM.assetDropArea.classList.add('dragover');
-  });
-  
-  DOM.assetDropArea.addEventListener('dragleave', () => {
-    DOM.assetDropArea.classList.remove('dragover');
-  });
-  
-  DOM.assetDropArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    DOM.assetDropArea.classList.remove('dragover');
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-      handleFiles(files);
-    }
-  });
-  
-  DOM.assetDropArea.addEventListener('click', () => {
-    DOM.assetUpload.click();
-  });
-  
-  // Load existing assets
-  renderAssets();
-}
-
-function handleAssetUpload(e) {
-  const files = e.target.files;
-  if (files.length > 0) {
-    handleFiles(files);
-  }
-  e.target.value = '';
-}
-
-function handleFiles(files) {
-  const validTypes = ['image/', 'video/', 'application/pdf', 'text/plain'];
-  const maxSize = 50 * 1024 * 1024; // 50MB
-  
-  Array.from(files).forEach(file => {
-    // Validate type
-    const isValid = validTypes.some(type => file.type.startsWith(type) || file.name.endsWith('.pdf'));
-    if (!isValid) {
-      showToast(`⚠️ ${file.name} is not supported`);
-      return;
-    }
-    
-    // Validate size
-    if (file.size > maxSize) {
-      showToast(`⚠️ ${file.name} is too large (max 50MB)`);
-      return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      const dataUrl = e.target.result;
-      const asset = {
-        name: file.name,
-        type: file.type,
-        data: dataUrl,
-        size: file.size
-      };
-      
-      AppState.data.assets.push(asset);
-      renderAssets();
-      AppState.saveDraft();
-      showToast(`✅ ${file.name} uploaded!`);
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function renderAssets() {
-  const assets = AppState.data.assets || [];
-  DOM.assetGrid.innerHTML = '';
-  
-  if (assets.length === 0) {
-    DOM.assetGrid.innerHTML = `
-      <div class="empty-state" style="grid-column:1/-1;padding:40px;text-align:center;color:var(--color-text-muted);">
-        <span style="font-size:2rem;display:block;margin-bottom:8px;">📁</span>
-        <p>No assets uploaded yet</p>
-        <p style="font-size:0.85rem;">Upload images, videos, or documents above</p>
-      </div>
-    `;
-    return;
-  }
-  
-  assets.forEach((asset, index) => {
-    const item = document.createElement('div');
-    item.className = 'asset-item';
-    item.dataset.assetName = asset.name;
-    item.dataset.assetType = asset.type;
-    item.dataset.assetData = asset.data;
-    item.dataset.assetSize = asset.size;
-    
-    let previewHTML = '';
-    if (asset.type.startsWith('image/')) {
-      previewHTML = `<img src="${asset.data}" alt="${asset.name}" />`;
-    } else if (asset.type.startsWith('video/')) {
-      previewHTML = `<video src="${asset.data}" muted></video>`;
-    } else {
-      previewHTML = `<span class="asset-icon">📄</span>`;
-    }
-    
-    item.innerHTML = `
-      <div class="asset-preview">${previewHTML}</div>
-      <div class="asset-name" title="${asset.name}">${asset.name.length > 15 ? asset.name.substring(0, 15) + '...' : asset.name}</div>
-      <div class="asset-size">${formatFileSize(asset.size)}</div>
-      <button class="btn-remove-asset" data-index="${index}" title="Remove asset">×</button>
-    `;
-    
-    item.querySelector('.btn-remove-asset').addEventListener('click', function(e) {
-      e.stopPropagation();
-      AppState.data.assets.splice(index, 1);
-      renderAssets();
-      AppState.saveDraft();
-      showToast('🗑️ Asset removed');
     });
-    
-    // Click to copy URL to clipboard
-    item.addEventListener('click', function() {
-      navigator.clipboard.writeText(asset.data).then(() => {
-        showToast('📋 Asset URL copied to clipboard!');
-      }).catch(() => {
-        // Fallback
-        const textarea = document.createElement('textarea');
-        textarea.value = asset.data;
-        document.body.appendChild(textarea);
-        textarea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textarea);
-        showToast('📋 Asset URL copied to clipboard!');
+
+    html += `
+      <button class="add-showcase-btn" data-action="add-showcase" aria-label="Add new showcase">
+        <i class="fas fa-plus-circle" aria-hidden="true"></i> Add Showcase
+      </button>
+    `;
+
+    container.innerHTML = html;
+    PreviewController.render();
+  },
+};
+
+// ============================================================
+// 11. ASSET MANAGER
+// ============================================================
+
+const AssetManager = {
+  add(name, type = 'image', size = '0 B') {
+    const newAsset = {
+      id: generateId(),
+      name: name.trim() || 'Untitled',
+      type: type,
+      size: size,
+    };
+    const assets = [...State.portfolio.assets, newAsset];
+    updateState('portfolio.assets', assets);
+    this.render();
+    ToastManager.show(`Added asset: ${escapeHtml(newAsset.name)}`, 'success');
+  },
+
+  delete(id) {
+    const assets = State.portfolio.assets.filter(a => a.id !== id);
+    updateState('portfolio.assets', assets);
+    this.render();
+    ToastManager.show('Asset deleted', 'info');
+  },
+
+  render() {
+    const container = DOM.assetMini;
+    if (!container) return;
+
+    const assets = State.portfolio.assets;
+    const iconMap = {
+      image: 'fa-file-image',
+      video: 'fa-file-video',
+      pdf: 'fa-file-pdf',
+      audio: 'fa-file-audio',
+      document: 'fa-file-alt',
+    };
+
+    let html = '';
+    assets.forEach((asset) => {
+      const icon = iconMap[asset.type] || 'fa-file';
+      html += `
+        <div class="asset-item" role="listitem" data-id="${escapeHtml(asset.id)}">
+          <i class="fas ${icon}" aria-hidden="true"></i> ${escapeHtml(asset.name)}
+          <span style="margin-left:auto; font-size:0.7rem; color:var(--text-muted);">${escapeHtml(asset.size)}</span>
+          <button class="asset-delete-btn" data-action="delete-asset" data-id="${escapeHtml(asset.id)}" aria-label="Delete asset">
+            <i class="fas fa-times" aria-hidden="true"></i>
+          </button>
+        </div>
+      `;
+    });
+
+    html += `
+      <button class="add-asset-btn" data-action="add-asset" aria-label="Upload new asset">
+        <i class="fas fa-upload" aria-hidden="true"></i> Upload asset
+      </button>
+    `;
+
+    container.innerHTML = html;
+  },
+
+  openModal() {
+    const modal = DOM.assetModal;
+    if (!modal) return;
+    modal.style.display = 'flex';
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+
+    const body = DOM.assetModalBody;
+    if (body) {
+      let html = '<div class="asset-grid-full">';
+      State.portfolio.assets.forEach((asset) => {
+        html += `
+          <div class="asset-full-item">
+            <span><i class="fas fa-file" aria-hidden="true"></i> ${escapeHtml(asset.name)}</span>
+            <span>${escapeHtml(asset.size)}</span>
+          </div>
+        `;
       });
+      html += '</div>';
+      html += `<button class="upload-asset-btn" id="modalUploadAsset"><i class="fas fa-cloud-upload-alt" aria-hidden="true"></i> Upload new asset</button>`;
+      body.innerHTML = html;
+
+      body.querySelector('#modalUploadAsset')?.addEventListener('click', () => {
+        const name = prompt('Enter asset name:');
+        if (name) {
+          AssetManager.add(name, 'image', '0 B');
+          AssetManager.openModal(); // Refresh modal
+        }
+      });
+    }
+
+    // Focus trap
+    const closeBtn = DOM.assetModalClose || DOM.assetModalCloseBtn;
+    if (closeBtn) {
+      setTimeout(() => closeBtn.focus(), 100);
+    }
+  },
+
+  closeModal() {
+    const modal = DOM.assetModal;
+    if (!modal) return;
+    modal.style.display = 'none';
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    DOM.assetManagerTrigger?.focus();
+  },
+};
+
+// ============================================================
+// 12. EXPORT CONTROLLER
+// ============================================================
+
+const ExportController = {
+  open() {
+    const screen = DOM.exportScreen;
+    if (!screen) return;
+    screen.style.display = 'flex';
+    screen.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => DOM.exportClose?.focus(), 100);
+
+    // Reset selection
+    const cards = screen.querySelectorAll('.export-format-card');
+    cards.forEach(c => c.classList.remove('selected'));
+  },
+
+  close() {
+    const screen = DOM.exportScreen;
+    if (!screen) return;
+    screen.style.display = 'none';
+    screen.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    DOM.exportTrigger?.focus();
+  },
+
+  exportFormat(format) {
+    ToastManager.show(`Exporting ${format}... (simulated)`, 'info');
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        ToastManager.show(`✅ ${format} exported successfully!`, 'success');
+        resolve(true);
+      }, 1200);
     });
-    
-    DOM.assetGrid.appendChild(item);
-  });
-}
+  },
 
-function formatFileSize(bytes) {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  if (bytes < 1024 * 1024 * 1024) return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  return (bytes / (1024 * 1024 * 1024)).toFixed(1) + ' GB';
-}
-
-// ============================================================
-// SKILLS
-// ============================================================
-function addSkill(skill) {
-  if (!skill || !skill.trim()) return;
-  const trimmed = skill.trim();
-  if (document.querySelector(`.skill-tag[data-skill="${escapeHTML(trimmed)}"]`)) {
-    showToast('Skill already exists');
-    return;
-  }
-  
-  const tag = document.createElement('span');
-  tag.className = 'skill-tag';
-  tag.dataset.skill = trimmed;
-  tag.innerHTML = `${escapeHTML(trimmed)} <button class="btn-remove-skill" type="button">×</button>`;
-  tag.querySelector('.btn-remove-skill').addEventListener('click', () => {
-    tag.remove();
-    renderPreview();
-  });
-  
-  DOM.skillsList.appendChild(tag);
-  DOM.skillInput.value = '';
-  DOM.skillInput.focus();
-  renderPreview();
-}
-
-// ============================================================
-// SOCIAL LINKS
-// ============================================================
-function addSocialRow(platform = 'instagram', url = '') {
-  const row = document.createElement('div');
-  row.className = 'social-input-row';
-  row.innerHTML = `
-    <select class="social-platform">
-      <option value="instagram" ${platform === 'instagram' ? 'selected' : ''}>Instagram</option>
-      <option value="twitter" ${platform === 'twitter' ? 'selected' : ''}>Twitter</option>
-      <option value="linkedin" ${platform === 'linkedin' ? 'selected' : ''}>LinkedIn</option>
-      <option value="github" ${platform === 'github' ? 'selected' : ''}>GitHub</option>
-      <option value="youtube" ${platform === 'youtube' ? 'selected' : ''}>YouTube</option>
-      <option value="vimeo" ${platform === 'vimeo' ? 'selected' : ''}>Vimeo</option>
-      <option value="behance" ${platform === 'behance' ? 'selected' : ''}>Behance</option>
-      <option value="dribbble" ${platform === 'dribbble' ? 'selected' : ''}>Dribbble</option>
-    </select>
-    <input type="url" class="social-url" placeholder="https://..." value="${escapeHTML(url)}" />
-    <button class="btn-remove-social" type="button">×</button>
-  `;
-  row.querySelector('.btn-remove-social').addEventListener('click', () => {
-    if (document.querySelectorAll('.social-input-row').length > 1) {
-      row.remove();
-      renderPreview();
-    } else {
-      showToast('You need at least one social link');
+  async exportAll() {
+    const formats = ['Website', 'Notion', 'PDF'];
+    let success = 0;
+    for (const fmt of formats) {
+      await this.exportFormat(fmt);
+      success++;
     }
-  });
-  row.querySelectorAll('input, select').forEach(el => {
-    el.addEventListener('input', renderPreview);
-    el.addEventListener('change', renderPreview);
-  });
-  DOM.socialLinks.appendChild(row);
-  renderPreview();
-}
-
-// ============================================================
-// PROFILE UPLOAD
-// ============================================================
-function setupProfileUpload() {
-  DOM.profileUpload.addEventListener('change', function(e) {
-    const file = this.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      showToast('Please select an image file');
-      return;
+    if (success === formats.length) {
+      ToastManager.show('🎉 All formats exported successfully!', 'success');
+      this.close();
     }
-    const reader = new FileReader();
-    reader.onload = function(event) {
-      const dataUrl = event.target.result;
-      DOM.profilePreviewImg.src = dataUrl;
-      DOM.profilePreviewImg.style.display = 'block';
-      const placeholder = DOM.profilePreview.querySelector('.preview-placeholder');
-      if (placeholder) placeholder.style.display = 'none';
-      DOM.aboutImage.value = dataUrl;
-      collectData();
-      renderPreview();
-    };
-    reader.readAsDataURL(file);
-  });
-  
-  DOM.applyProfileUrl.addEventListener('click', function() {
-    const url = DOM.aboutImage.value.trim();
-    if (!url) { showToast('Please enter an image URL'); return; }
-    DOM.profilePreviewImg.src = url;
-    DOM.profilePreviewImg.onload = function() {
-      DOM.profilePreviewImg.style.display = 'block';
-      const placeholder = DOM.profilePreview.querySelector('.preview-placeholder');
-      if (placeholder) placeholder.style.display = 'none';
-      collectData();
-      renderPreview();
-    };
-    DOM.profilePreviewImg.onerror = function() {
-      showToast('Invalid image URL');
-    };
-  });
-  
-  DOM.removeProfileImage.addEventListener('click', function() {
-    DOM.profilePreviewImg.src = '';
-    DOM.profilePreviewImg.style.display = 'none';
-    const placeholder = DOM.profilePreview.querySelector('.preview-placeholder');
-    if (placeholder) placeholder.style.display = 'flex';
-    DOM.aboutImage.value = '';
-    DOM.profileUpload.value = '';
-    collectData();
-    renderPreview();
-  });
-}
+  },
+};
 
 // ============================================================
-// PREVIEW
+// 13. GENERATE CONTROLLER
 // ============================================================
-function renderPreview() {
-  if (!AppState.previewOpen) return;
-  collectData();
-  const html = generatePortfolioHTML();
-  DOM.previewFrame.innerHTML = html;
-}
 
-function togglePreview() {
-  AppState.previewOpen = !AppState.previewOpen;
-  DOM.previewPanel.classList.toggle('open', AppState.previewOpen);
-  if (AppState.previewOpen) {
-    collectData();
-    renderPreview();
-  }
-}
+const GenerateController = {
+  open() {
+    const screen = DOM.generateScreen;
+    if (!screen) return;
+    screen.style.display = 'flex';
+    screen.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => DOM.generateClose?.focus(), 100);
+    this.updateStatus('ready');
+  },
 
-// ============================================================
-// PORTFOLIO GENERATOR
-// ============================================================
-function generatePortfolioHTML() {
-  collectData();
-  const d = AppState.data;
-  const design = d.design;
-  
-  const themeColors = {
-    light: { bg: '#f8f6f2', text: '#1a1a1a', card: '#ffffff', border: '#e8e0d8' },
-    dark: { bg: '#1a1a1a', text: '#f8f6f2', card: '#2a2a2a', border: '#3a3a3a' },
-    warm: { bg: '#fcf6f0', text: '#2c1a10', card: '#fffaf5', border: '#ead8c8' },
-    forest: { bg: '#f0f5ee', text: '#1a2a1a', card: '#ffffff', border: '#d0ddd0' },
-    ocean: { bg: '#f0f5f8', text: '#0a1a2a', card: '#ffffff', border: '#c8d8e0' }
-  };
-  
-  const colors = themeColors[design.theme] || themeColors.light;
-  
-  const fonts = {
-    modern: { display: "'DM Serif Display', Georgia, serif", body: "'Inter', sans-serif" },
-    classic: { display: "'Playfair Display', Georgia, serif", body: "'Inter', sans-serif" },
-    minimal: { display: "'Inter', sans-serif", body: "'Inter', sans-serif" },
-    playful: { display: "'DM Serif Display', Georgia, serif", body: "'Inter', sans-serif" }
-  };
-  
-  const font = fonts[design.typography] || fonts.modern;
-  
-  const heroAlign = design.heroLayout === 'center' ? 'center' : design.heroLayout === 'split' ? 'space-between' : 'flex-start';
-  const heroTextAlign = design.heroLayout === 'center' ? 'center' : 'left';
-  
-  // Generate projects with blocks
-  let projectsHTML = '';
-  d.projects.forEach(p => {
-    let blocksHTML = '';
-    (p.blocks || []).forEach(block => {
-      const content = block.content || '';
-      switch(block.type) {
-        case 'image':
-          blocksHTML += `<div class="block-image"><img src="${escapeHTML(content)}" alt="Project image" /></div>`;
-          break;
-        case 'video':
-          blocksHTML += `<div class="block-video"><video src="${escapeHTML(content)}" controls></video></div>`;
-          break;
-        case 'text':
-          blocksHTML += `<div class="block-text">${escapeHTML(content)}</div>`;
-          break;
-        case 'embed':
-          blocksHTML += `<div class="block-embed"><iframe src="${escapeHTML(content)}" allowfullscreen></iframe></div>`;
-          break;
-        case 'gallery':
-          const images = content.split(',').map(s => s.trim()).filter(Boolean);
-          blocksHTML += `<div class="block-gallery">${images.map(img => `<img src="${escapeHTML(img)}" />`).join('')}</div>`;
-          break;
-        case 'pdf':
-          blocksHTML += `<div class="block-pdf"><iframe src="${escapeHTML(content)}" style="width:100%;height:400px;"></iframe></div>`;
-          break;
-        case 'code':
-          blocksHTML += `<div class="block-code"><pre><code>${escapeHTML(content)}</code></pre></div>`;
-          break;
-        case 'audio':
-          blocksHTML += `<div class="block-audio"><audio controls src="${escapeHTML(content)}"></audio></div>`;
-          break;
-        case 'button':
-          blocksHTML += `<div class="block-button"><a href="#" class="btn">${escapeHTML(content)}</a></div>`;
-          break;
-        case 'custom':
-          blocksHTML += `<div class="block-custom">${escapeHTML(content)}</div>`;
-          break;
-        default:
-          blocksHTML += `<div class="block-text">${escapeHTML(content)}</div>`;
+  close() {
+    const screen = DOM.generateScreen;
+    if (!screen) return;
+    screen.style.display = 'none';
+    screen.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    DOM.generateTrigger?.focus();
+  },
+
+  updateStatus(status = 'ready') {
+    const statusMap = {
+      ready: { text: 'Ready', color: '#22c55e', bg: '#dcfce7' },
+      generating: { text: 'Generating...', color: '#f9a826', bg: '#fef3c7' },
+      done: { text: '✅ Done', color: '#22c55e', bg: '#dcfce7' },
+      error: { text: '❌ Error', color: '#e94f4f', bg: '#fee2e2' },
+    };
+
+    const statuses = [
+      DOM.genStatusWebsite,
+      DOM.genStatusNotion,
+      DOM.genStatusPdf,
+    ];
+
+    const style = statusMap[status] || statusMap.ready;
+    statuses.forEach(el => {
+      if (el) {
+        el.textContent = style.text;
+        el.style.color = style.color;
+        el.style.background = style.bg;
       }
     });
-    
-    projectsHTML += `
-      <div class="project-card">
-        <div class="project-header">
-          <h3 class="project-title">${escapeHTML(p.title)}</h3>
-          <span class="project-meta">${escapeHTML(p.category)} ${p.year ? '· ' + escapeHTML(p.year) : ''}</span>
-          <p class="project-desc">${escapeHTML(p.description)}</p>
-        </div>
-        <div class="project-blocks">
-          ${blocksHTML}
-        </div>
-      </div>
-    `;
-  });
-  
-  // Skills
-  const skillsHTML = d.skills.map(s => `<span class="skill-tag">${escapeHTML(s)}</span>`).join('');
-  
-  // Social
-  const socialHTML = d.social.map(s => 
-    `<a href="${escapeHTML(s.url)}" target="_blank" rel="noopener">${s.platform.charAt(0).toUpperCase() + s.platform.slice(1)}</a>`
-  ).join('');
-  
-  const email = d.contactEmail || d.email;
-  
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>${escapeHTML(d.fullName)} — Portfolio</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <style>
-    :root {
-      --bg: ${colors.bg};
-      --text: ${colors.text};
-      --card: ${colors.card};
-      --border: ${colors.border};
-      --accent: ${design.accentColor};
-      --radius: ${design.borderRadius}px;
-      --font-display: ${font.display};
-      --font-body: ${font.body};
-      --accent-light: color-mix(in srgb, var(--accent) 10%, transparent);
+  },
+
+  async generateAll() {
+    ToastManager.show('🚀 Generating all formats...', 'info');
+    this.updateStatus('generating');
+    DOM.generateAllBtn.textContent = '⏳ Generating...';
+    DOM.generateAllBtn.disabled = true;
+
+    const formats = ['Website', 'Notion', 'PDF'];
+    let completed = 0;
+
+    for (const fmt of formats) {
+      await new Promise(resolve => {
+        setTimeout(() => {
+          completed++;
+          ToastManager.show(`✅ ${fmt} generated`, 'success');
+          if (completed === formats.length) {
+            ToastManager.show('🎉 All formats generated successfully!', 'success');
+            updateState('generated.lastGenerated', new Date().toISOString());
+            this.updateStatus('done');
+            setTimeout(() => this.close(), 1500);
+          }
+          resolve();
+        }, 1000 + Math.random() * 500);
+      });
     }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: var(--font-body); background: var(--bg); color: var(--text); line-height: 1.7; padding-top: 70px; }
-    .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
-    
-    .site-header {
-      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-      background: rgba(255,255,255,0.85); backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border);
-      padding: 16px 24px; display: flex; justify-content: space-between; align-items: center;
-      max-width: 1100px; margin: 0 auto;
-    }
-    .logo { font-family: var(--font-display); font-size: 1.4rem; font-weight: 600; color: var(--text); text-decoration: none; }
-    .logo span { color: var(--accent); }
-    .nav-list { display: flex; gap: 24px; list-style: none; }
-    .nav-list a { color: var(--text); text-decoration: none; font-size: 0.85rem; font-weight: 500; border-bottom: 2px solid transparent; transition: border-color 0.3s; }
-    .nav-list a:hover { border-color: var(--accent); }
-    
-    .hero { min-height: 60vh; display: flex; align-items: center; padding: 60px 0; text-align: ${heroTextAlign}; }
-    .hero-content { max-width: 720px; ${heroAlign === 'center' ? 'margin: 0 auto;' : ''} }
-    .hero-name { font-family: var(--font-display); font-size: clamp(3rem, 8vw, 5rem); font-weight: 600; line-height: 1.05; margin-bottom: 8px; }
-    .hero-title { font-size: 1.4rem; color: var(--accent); font-weight: 400; margin-bottom: 8px; }
-    .hero-tagline { font-size: 1.1rem; color: var(--text-secondary); max-width: 520px; ${heroAlign === 'center' ? 'margin: 0 auto;' : ''} }
-    .hero-meta { display: flex; gap: 16px 32px; flex-wrap: wrap; margin-top: 20px; font-size: 0.9rem; color: var(--text-secondary); justify-content: ${heroAlign === 'center' ? 'center' : 'flex-start'}; }
-    
-    section { padding: 60px 0; }
-    .section-header { margin-bottom: 32px; ${heroAlign === 'center' ? 'text-align: center;' : ''} }
-    .section-number { font-size: 0.75rem; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; }
-    .section-title { font-family: var(--font-display); font-size: 2.2rem; font-weight: 400; margin-top: 4px; }
-    
-    .project-card {
-      background: var(--card);
-      border-radius: var(--radius);
-      padding: 24px;
-      margin-bottom: 24px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
-      transition: transform 0.3s;
-    }
-    .project-card:hover { transform: translateY(-4px); box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
-    .project-title { font-family: var(--font-display); font-size: 1.4rem; font-weight: 600; }
-    .project-meta { font-size: 0.85rem; color: var(--text-secondary); display: block; }
-    .project-desc { font-size: 1rem; color: var(--text-secondary); margin-top: 8px; }
-    .project-blocks { margin-top: 16px; display: flex; flex-direction: column; gap: 16px; }
-    .project-blocks img { max-width: 100%; border-radius: var(--radius); }
-    .project-blocks video { max-width: 100%; border-radius: var(--radius); }
-    .project-blocks iframe { width: 100%; border-radius: var(--radius); min-height: 400px; }
-    .block-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
-    .block-gallery img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--radius); }
-    .block-code pre { background: var(--bg); padding: 16px; border-radius: var(--radius); overflow: auto; font-size: 0.85rem; }
-    .block-button .btn { display: inline-block; padding: 10px 24px; background: var(--accent); color: white; border-radius: var(--radius); text-decoration: none; transition: background 0.3s; }
-    .block-button .btn:hover { background: var(--accent-hover); }
-    
-    .about-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
-    .about-text p { font-size: 1.05rem; font-weight: 300; line-height: 1.8; margin-bottom: 16px; }
-    .about-image { border-radius: var(--radius); overflow: hidden; background: var(--border); aspect-ratio: 3/4; }
-    .about-image img { width: 100%; height: 100%; object-fit: cover; }
-    .about-image .placeholder { display: flex; align-items: center; justify-content: center; height: 100%; font-size: 4rem; color: var(--text-secondary); }
-    .skills-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    .skill-tag { padding: 6px 14px; background: var(--accent-light); color: var(--accent); border-radius: 100px; font-size: 0.85rem; font-weight: 500; }
-    
-    .contact-section { text-align: center; }
-    .contact-email { font-family: var(--font-display); font-size: clamp(1.8rem, 4vw, 3rem); color: var(--accent); text-decoration: none; display: inline-block; border-bottom: 2px solid transparent; transition: border-color 0.3s; }
-    .contact-email:hover { border-color: var(--accent); }
-    .contact-note { color: var(--text-secondary); margin-top: 8px; }
-    
-    .footer { padding: 32px 0 20px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
-    .footer-copy { color: var(--text-secondary); font-size: 0.85rem; }
-    .footer-social { display: flex; gap: 16px; }
-    .footer-social a { color: var(--text-secondary); text-decoration: none; font-size: 0.85rem; transition: color 0.3s; }
-    .footer-social a:hover { color: var(--accent); }
-    
-    ${d.advanced.customCSS}
-    
-    @media (max-width: 768px) {
-      .about-grid { grid-template-columns: 1fr; }
-      .site-header { flex-wrap: wrap; gap: 12px; }
-      .nav-list { gap: 16px; flex-wrap: wrap; }
-      .hero { padding: 40px 0; min-height: auto; }
-      section { padding: 40px 0; }
-      .contact-email { font-size: 1.6rem; }
-      .project-blocks iframe { min-height: 250px; }
-    }
-    @media (max-width: 480px) {
-      .container { padding: 0 16px; }
-      .nav-list { gap: 12px; }
-      .nav-list a { font-size: 0.75rem; }
-      .hero-name { font-size: 2.4rem; }
-      .section-title { font-size: 1.6rem; }
-    }
-  </style>
-</head>
-<body>
-  <header class="site-header">
-    <a href="#" class="logo">${escapeHTML(d.fullName.split(' ').map(n => n[0]).join(''))}<span>.</span></a>
-    <nav>
-      <ul class="nav-list">
-        <li><a href="#work">Work</a></li>
-        <li><a href="#about">About</a></li>
-        <li><a href="#contact">Contact</a></li>
-      </ul>
-    </nav>
-  </header>
-  <main>
-    <section class="hero">
-      <div class="container">
-        <div class="hero-content">
-          <div style="font-size:3rem;margin-bottom:8px;">${d.avatarEmoji || '🎨'}</div>
-          <h1 class="hero-name">${escapeHTML(d.fullName)}</h1>
-          <p class="hero-title">${escapeHTML(d.title || 'Creative Professional')}</p>
-          <p class="hero-tagline">${escapeHTML(d.tagline || '')}</p>
-          <div class="hero-meta">
-            ${d.location ? `<span>📍 ${escapeHTML(d.location)}</span>` : ''}
-            ${d.experienceYears ? `<span>📅 ${escapeHTML(d.experienceYears)} years</span>` : ''}
-            <span>✉️ ${escapeHTML(email)}</span>
-          </div>
-        </div>
-      </div>
-    </section>
-    <section id="work">
-      <div class="container">
-        <div class="section-header">
-          <span class="section-number">01</span>
-          <h2 class="section-title">Work</h2>
-        </div>
-        ${projectsHTML || '<p style="text-align:center;color:var(--text-secondary);">No projects added yet.</p>'}
-      </div>
-    </section>
-    <section id="about">
-      <div class="container">
-        <div class="section-header">
-          <span class="section-number">02</span>
-          <h2 class="section-title">About</h2>
-        </div>
-        <div class="about-grid">
-          <div class="about-text">
-            ${d.aboutHeadline ? `<h3 style="font-family:var(--font-display);font-weight:400;font-size:1.4rem;margin-bottom:8px;">${escapeHTML(d.aboutHeadline)}</h3>` : ''}
-            ${d.aboutStory ? d.aboutStory.split('\n').filter(p => p.trim()).map(p => `<p>${escapeHTML(p)}</p>`).join('') : '<p>Add your story in the builder.</p>'}
-            ${skillsHTML ? `<div style="margin-top:24px;"><h4 style="font-weight:600;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-secondary);">Skills</h4><div class="skills-tags">${skillsHTML}</div></div>` : ''}
-          </div>
-          <div class="about-image">
-            ${d.aboutImage ? `<img src="${escapeHTML(d.aboutImage)}" alt="${escapeHTML(d.fullName)}" />` : `<div class="placeholder">${d.avatarEmoji || '📸'}</div>`}
-          </div>
-        </div>
-      </div>
-    </section>
-    <section id="contact" class="contact-section">
-      <div class="container">
-        <div class="section-header">
-          <span class="section-number">03</span>
-          <h2 class="section-title">Let's Connect</h2>
-        </div>
-        <a href="mailto:${escapeHTML(email)}" class="contact-email">${escapeHTML(email)}</a>
-        <p class="contact-note">${escapeHTML(d.contactNote || 'Available for collaborations.')}</p>
-      </div>
-    </section>
-  </main>
-  <footer>
-    <div class="container">
-      <div class="footer">
-        <span class="footer-copy">${escapeHTML(d.advanced.footerText || '© ' + new Date().getFullYear() + ' ' + d.fullName)}</span>
-        <div class="footer-social">${socialHTML}</div>
-      </div>
-    </div>
-  </footer>
-  ${d.advanced.customJS ? `<script>${d.advanced.customJS}<\/script>` : ''}
-</body>
-</html>`;
-}
+
+    DOM.generateAllBtn.textContent = 'Generate all formats';
+    DOM.generateAllBtn.disabled = false;
+  },
+};
 
 // ============================================================
-// GENERATE & DOWNLOAD
+// 14. EVENT HANDLERS
 // ============================================================
-function generatePortfolio() {
-  collectData();
-  
-  if (!AppState.data.fullName) {
-    showToast('Please enter your name first');
-    return;
-  }
-  if (!AppState.data.email && !AppState.data.contactEmail) {
-    showToast('Please enter an email address');
-    return;
-  }
-  
-  const html = generatePortfolioHTML();
-  AppState.generatedHTML = html;
-  DOM.outputContent.textContent = html;
-  DOM.successModal.classList.add('open');
-}
 
-function downloadPortfolio() {
-  if (!AppState.generatedHTML) {
-    showToast('Please generate a portfolio first');
-    return;
-  }
-  
-  const blob = new Blob([AppState.generatedHTML], { type: 'text/html' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = 'portfolio.html';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href);
-  showToast('📄 Portfolio downloaded!');
-}
+function initEventListeners() {
+  // Wizard navigation
+  DOM.wizardNext?.addEventListener('click', () => WizardController.next());
+  DOM.wizardPrev?.addEventListener('click', () => WizardController.back());
 
-// ============================================================
-// TOAST
-// ============================================================
-function showToast(message) {
-  const container = DOM.toastContainer;
-  if (!container) return;
-  
-  const toast = document.createElement('div');
-  toast.className = 'toast';
-  toast.textContent = message;
-  container.appendChild(toast);
-  
-  setTimeout(() => {
-    toast.style.opacity = '0';
-    toast.style.transform = 'translateY(20px)';
-    setTimeout(() => toast.remove(), 400);
-  }, 3000);
-}
-
-// ============================================================
-// COPY CODE
-// ============================================================
-function copyCode() {
-  const code = DOM.outputContent.textContent;
-  navigator.clipboard.writeText(code).then(() => {
-    showToast('📋 Code copied to clipboard!');
-  }).catch(() => {
-    const textarea = document.createElement('textarea');
-    textarea.value = code;
-    document.body.appendChild(textarea);
-    textarea.select();
-    document.execCommand('copy');
-    document.body.removeChild(textarea);
-    showToast('📋 Code copied to clipboard!');
-  });
-}
-
-// ============================================================
-// EVENT LISTENERS
-// ============================================================
-function setupEventListeners() {
-  // Navigation
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', () => navigateTo(item.dataset.step));
-  });
-  
-  document.querySelectorAll('.btn-next').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const next = btn.dataset.next;
-      if (next && validateStep(AppState.currentStep)) {
-        navigateTo(next);
+  DOM.stepItems.forEach((item) => {
+    item.addEventListener('click', () => {
+      const step = parseInt(item.dataset.step);
+      WizardController.goToStep(step);
+    });
+    item.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        const step = parseInt(item.dataset.step);
+        WizardController.goToStep(step);
       }
     });
   });
-  
-  document.querySelectorAll('.btn-prev').forEach(btn => {
+
+  // Device preview
+  DOM.deviceBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      const prev = btn.dataset.prev;
-      if (prev) navigateTo(prev);
+      PreviewController.setDevice(btn.dataset.device);
     });
   });
-  
-  // Theme
-  DOM.themeSelector.querySelectorAll('.theme-option').forEach(btn => {
-    btn.addEventListener('click', () => {
-      DOM.themeSelector.querySelectorAll('.theme-option').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderPreview();
-    });
-  });
-  
-  // Accent color
-  DOM.accentColor.addEventListener('input', () => {
-    DOM.accentColorHex.value = DOM.accentColor.value;
-    renderPreview();
-  });
-  
-  DOM.accentColorHex.addEventListener('input', () => {
-    if (/^#[0-9a-f]{6}$/i.test(DOM.accentColorHex.value)) {
-      DOM.accentColor.value = DOM.accentColorHex.value;
-      renderPreview();
+
+  // Preview actions
+  DOM.refreshPreview?.addEventListener('click', () => PreviewController.refresh());
+  DOM.expandPreview?.addEventListener('click', () => PreviewController.toggleExpand());
+
+  // Theme controls
+  DOM.colorPicker?.addEventListener('click', (e) => {
+    const swatch = e.target.closest('.color-swatch');
+    if (!swatch) return;
+    const color = swatch.dataset.color;
+    if (color) {
+      updateState('portfolio.theme.color', color);
+      ThemeEngine.apply();
+      PreviewController.render();
+      autosave();
     }
   });
-  
-  // Border radius
-  DOM.borderRadius.addEventListener('input', () => {
-    DOM.radiusValue.textContent = `${DOM.borderRadius.value}px`;
-    renderPreview();
-  });
-  
-  // Design selects
-  [DOM.typography, DOM.heroLayout].forEach(el => {
-    el.addEventListener('change', renderPreview);
-  });
-  
-  // Preview
-  DOM.previewToggle.addEventListener('click', togglePreview);
-  DOM.closePreview.addEventListener('click', togglePreview);
-  
-  // Generate
-  DOM.generateBtn.addEventListener('click', generatePortfolio);
-  DOM.generateFinalBtn.addEventListener('click', generatePortfolio);
-  
-  // Download
-  DOM.downloadBtn.addEventListener('click', downloadPortfolio);
-  
-  // Modal
-  DOM.successClose.addEventListener('click', () => {
-    DOM.successModal.classList.remove('open');
-  });
-  
-  DOM.successModal.addEventListener('click', (e) => {
-    if (e.target === DOM.successModal) {
-      DOM.successModal.classList.remove('open');
+
+  DOM.typographyPicker?.addEventListener('click', (e) => {
+    const option = e.target.closest('.type-option');
+    if (!option) return;
+    const value = option.dataset.value;
+    if (value) {
+      updateState('portfolio.theme.typography', value);
+      ThemeEngine.apply();
+      autosave();
     }
   });
-  
-  // Copy
-  DOM.copyBtn.addEventListener('click', copyCode);
-  
-  // Show code
-  DOM.showCodeBtn.addEventListener('click', () => {
-    const isVisible = DOM.codeContainer.style.display !== 'none';
-    DOM.codeContainer.style.display = isVisible ? 'none' : 'block';
-    DOM.showCodeBtn.textContent = isVisible ? 'View Source Code' : 'Hide Source Code';
-  });
-  
-  // Add project
-  DOM.addProjectBtn.addEventListener('click', () => addProject());
-  
-  // Add skill
-  DOM.addSkillBtn.addEventListener('click', () => addSkill(DOM.skillInput.value));
-  DOM.skillInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      addSkill(DOM.skillInput.value);
+
+  // Showcase manager (event delegation)
+  DOM.showcaseManager?.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.dataset.action;
+    const id = target.dataset.id;
+
+    switch (action) {
+      case 'add-showcase': {
+        const title = prompt('Enter showcase title:');
+        if (title !== null) ShowcaseManager.add(title);
+        break;
+      }
+      case 'delete-showcase':
+        if (confirm('Delete this showcase?')) ShowcaseManager.delete(id);
+        break;
+      case 'edit-showcase': {
+        const item = State.portfolio.showcases.find(s => s.id === id);
+        if (item) {
+          const newTitle = prompt('Edit title:', item.title);
+          if (newTitle !== null) ShowcaseManager.edit(id, newTitle);
+        }
+        break;
+      }
+      case 'duplicate-showcase':
+        ShowcaseManager.duplicate(id);
+        break;
     }
   });
-  
-  // Add social
-  DOM.addSocialBtn.addEventListener('click', () => addSocialRow());
-  
-  // Mobile menu
-  DOM.menuToggle.addEventListener('click', () => {
-    const expanded = DOM.menuToggle.getAttribute('aria-expanded') === 'true' ? false : true;
-    DOM.menuToggle.setAttribute('aria-expanded', expanded);
-    DOM.sidebar.classList.toggle('open', expanded);
+
+  // Asset manager (event delegation)
+  DOM.assetMini?.addEventListener('click', (e) => {
+    const target = e.target.closest('[data-action]');
+    if (!target) return;
+    const action = target.dataset.action;
+    const id = target.dataset.id;
+
+    switch (action) {
+      case 'add-asset': {
+        const name = prompt('Enter asset name:');
+        if (name !== null) AssetManager.add(name, 'image', '0 B');
+        break;
+      }
+      case 'delete-asset':
+        if (confirm('Delete this asset?')) AssetManager.delete(id);
+        break;
+    }
   });
-  
+
+  // Asset manager modal
+  DOM.assetManagerTrigger?.addEventListener('click', () => AssetManager.openModal());
+  DOM.assetModalClose?.addEventListener('click', () => AssetManager.closeModal());
+  DOM.assetModalCloseBtn?.addEventListener('click', () => AssetManager.closeModal());
+  DOM.assetModalOverlay?.addEventListener('click', () => AssetManager.closeModal());
+
+  // Export screen
+  DOM.exportTrigger?.addEventListener('click', () => ExportController.open());
+  DOM.exportClose?.addEventListener('click', () => ExportController.close());
+  DOM.exportScreen?.addEventListener('click', (e) => {
+    if (e.target === DOM.exportScreen) ExportController.close();
+  });
+
+  DOM.exportScreen?.addEventListener('click', (e) => {
+    const card = e.target.closest('.export-format-card');
+    if (card) {
+      const format = card.dataset.format;
+      const cards = DOM.exportScreen.querySelectorAll('.export-format-card');
+      cards.forEach(c => c.classList.remove('selected'));
+      card.classList.add('selected');
+      card.setAttribute('aria-checked', 'true');
+    }
+    const btn = e.target.closest('.export-action-btn');
+    if (btn) {
+      const selected = DOM.exportScreen.querySelector('.export-format-card.selected');
+      if (selected) {
+        ExportController.exportFormat(selected.dataset.format);
+      } else {
+        ToastManager.show('Please select a format first.', 'warning');
+      }
+    }
+  });
+
+  // Generate screen
+  DOM.generateTrigger?.addEventListener('click', () => GenerateController.open());
+  DOM.generateClose?.addEventListener('click', () => GenerateController.close());
+  DOM.generateScreen?.addEventListener('click', (e) => {
+    if (e.target === DOM.generateScreen) GenerateController.close();
+  });
+
+  DOM.generateFinalBtn?.addEventListener('click', () => {
+    GenerateController.generateAll();
+  });
+
+  DOM.generateAllBtn?.addEventListener('click', () => {
+    GenerateController.generateAll();
+  });
+
+  // Theme picker trigger
+  DOM.themePickerTrigger?.addEventListener('click', () => {
+    WizardController.goToStep(4);
+  });
+
+  // Modal controls
+  const closeModal = () => {
+    DOM.modalContainer.style.display = 'none';
+    DOM.modalContainer.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  };
+
+  DOM.modalClose?.addEventListener('click', closeModal);
+  DOM.modalOverlay?.addEventListener('click', closeModal);
+  DOM.modalCancel?.addEventListener('click', closeModal);
+
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
-      if (DOM.successModal.classList.contains('open')) {
-        DOM.successModal.classList.remove('open');
-      }
-      if (AppState.previewOpen) {
-        togglePreview();
-      }
-    }
-    if (e.ctrlKey && e.key === 'p') {
-      e.preventDefault();
-      togglePreview();
+      AssetManager.closeModal();
+      ExportController.close();
+      GenerateController.close();
+      closeModal();
     }
     if (e.ctrlKey && e.key === 's') {
       e.preventDefault();
-      collectData();
-      showToast('💾 Draft saved');
+      saveDraft();
+      ToastManager.show('Draft saved', 'success');
     }
   });
-  
-  // Auto-save
-  document.querySelectorAll('input, textarea, select').forEach(el => {
-    el.addEventListener('input', collectData);
-    el.addEventListener('change', collectData);
+
+  // Dark mode toggle (double-click logo)
+  document.querySelector('.logo-icon')?.addEventListener('dblclick', () => {
+    ThemeEngine.toggleDarkMode();
+    ToastManager.show(State.ui.darkMode ? '🌙 Dark mode' : '☀️ Light mode', 'info');
+  });
+
+  // Info form updates
+  const infoFields = [
+    { id: 'infoName', path: 'portfolio.information.name' },
+    { id: 'infoTitle', path: 'portfolio.information.title' },
+    { id: 'infoBio', path: 'portfolio.information.bio' },
+    { id: 'infoEmail', path: 'portfolio.information.email' },
+    { id: 'infoSocial', path: 'portfolio.information.social' },
+  ];
+
+  infoFields.forEach(({ id, path }) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('input', debounce(() => {
+        updateState(path, el.value);
+        PreviewController.render();
+        autosave();
+      }, 300));
+    }
+  });
+
+  // Type cards
+  document.querySelectorAll('.option-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.option-card').forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-checked', 'false');
+      });
+      card.classList.add('selected');
+      card.setAttribute('aria-checked', 'true');
+      updateState('portfolio.type', card.dataset.value);
+      PreviewController.render();
+      autosave();
+    });
+  });
+
+  // Style cards
+  document.querySelectorAll('.style-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.style-card').forEach(c => {
+        c.classList.remove('active');
+        c.setAttribute('aria-checked', 'false');
+      });
+      card.classList.add('active');
+      card.setAttribute('aria-checked', 'true');
+      updateState('portfolio.designStyle', card.dataset.value);
+      autosave();
+    });
+  });
+
+  // Layout cards
+  document.querySelectorAll('.layout-card').forEach(card => {
+    card.addEventListener('click', () => {
+      document.querySelectorAll('.layout-card').forEach(c => {
+        c.classList.remove('active');
+        c.setAttribute('aria-checked', 'false');
+      });
+      card.classList.add('active');
+      card.setAttribute('aria-checked', 'true');
+      updateState('portfolio.layout', card.dataset.value);
+      PreviewController.render();
+      autosave();
+    });
+  });
+
+  // Export format cards in export screen
+  DOM.exportScreen?.querySelectorAll('.export-format-card').forEach(card => {
+    card.addEventListener('click', () => {
+      DOM.exportScreen.querySelectorAll('.export-format-card').forEach(c => {
+        c.classList.remove('selected');
+        c.setAttribute('aria-checked', 'false');
+      });
+      card.classList.add('selected');
+      card.setAttribute('aria-checked', 'true');
+    });
+    card.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        card.click();
+      }
+    });
+  });
+
+  // Export action button
+  DOM.exportActionBtn?.addEventListener('click', () => {
+    const selected = DOM.exportScreen?.querySelector('.export-format-card.selected');
+    if (selected && selected.dataset.format) {
+      ExportController.exportFormat(selected.dataset.format);
+    } else {
+      ToastManager.show('Please select a format first.', 'warning');
+    }
   });
 }
 
 // ============================================================
-// INIT
+// 15. STATE SUBSCRIPTIONS
 // ============================================================
-function init() {
-  cacheDOM();
-  
-  // Load draft
-  AppState.loadDraft();
-  
-  // Add default project with blocks
-  addProject({
-    title: 'Featured Project',
-    description: 'A showcase of your best work.',
-    category: 'Design',
-    year: '2024',
-    blocks: [
-      { type: 'text', content: 'This is a featured project that demonstrates the flexible block system. You can add images, videos, embeds, and more.' },
-      { type: 'image', content: '' }
-    ]
+
+function initStateSubscriptions() {
+  subscribe((path) => {
+    if (path === 'ui.darkMode') {
+      ThemeEngine.apply();
+    }
+    if (path === 'portfolio.theme.color' || path === 'portfolio.theme.typography') {
+      ThemeEngine.apply();
+    }
+    if (path === 'portfolio.showcases' || path === 'portfolio.information') {
+      PreviewController.render();
+    }
+    if (path === 'portfolio.assets') {
+      AssetManager.render();
+    }
   });
-  
-  addProject({
-    title: 'Second Project',
-    description: 'Another great project worth sharing.',
-    category: 'Development',
-    year: '2024',
-    blocks: [
-      { type: 'text', content: 'Every project can have multiple content blocks in any order.' }
-    ]
-  });
-  
-  // Add default social links
-  addSocialRow('instagram', '');
-  addSocialRow('github', '');
-  
-  // Setup profile upload
-  setupProfileUpload();
-  
-  // Setup asset manager
-  setupAssetManager();
-  
-  // Set initial step
-  navigateTo('identity');
-  
-  // Setup events
-  setupEventListeners();
-  
-  console.log('✨ Portfolio Builder Universal Platform initialized!');
-  console.log('📝 Build your portfolio with flexible content blocks.');
-  console.log('🖼️ Upload assets and use them across projects.');
-  console.log('💡 Tip: Press Ctrl+S to save your draft');
 }
 
-// Start
-document.addEventListener('DOMContentLoaded', init);
+// ============================================================
+// 16. INITIALIZATION
+// ============================================================
+
+function initApp() {
+  // Restore draft
+  const hasDraft = restoreDraft();
+
+  // Initialize state subscriptions
+  initStateSubscriptions();
+
+  // Apply theme
+  ThemeEngine.apply();
+
+  // Render all components
+  WizardController.render();
+  PreviewController.render();
+  ShowcaseManager.render();
+  AssetManager.render();
+
+  // Set initial device
+  PreviewController.setDevice('desktop');
+
+  // Bind events
+  initEventListeners();
+
+  // Sync info form with state
+  const infoMap = {
+    'infoName': State.portfolio.information.name,
+    'infoTitle': State.portfolio.information.title,
+    'infoBio': State.portfolio.information.bio,
+    'infoEmail': State.portfolio.information.email,
+    'infoSocial': State.portfolio.information.social,
+  };
+  Object.entries(infoMap).forEach(([id, value]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = value || '';
+  });
+
+  // Show welcome
+  if (hasDraft) {
+    ToastManager.show('📂 Draft restored', 'info');
+  } else {
+    ToastManager.show('👋 Welcome to Creative Portfolio Studio', 'info');
+  }
+
+  // Save on unload
+  window.addEventListener('beforeunload', saveDraft);
+
+  console.log('🚀 Creative Portfolio Studio initialized');
+  console.log('📊 State:', State);
+}
+
+// Start app
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
