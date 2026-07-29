@@ -1,895 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Creative Portfolio Studio · SaaS</title>
-  <!-- Google Fonts (Inter & SF Pro Display) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet" />
-  <style>
-    /* ----- CSS VARIABLES / DESIGN SYSTEM ----- */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
-    :root {
-      --accent: #7C3AED;
-      --accent-hover: #6D28D9;
-      --accent-soft: #EDE9FE;
-      --bg: #0B0B0E;
-      --bg-surface: #131317;
-      --bg-card: #1A1A22;
-      --bg-card-hover: #22222C;
-      --border: #2A2A36;
-      --text: #F1F1F6;
-      --text-secondary: #A1A1B0;
-      --text-muted: #6B6B7D;
-      --radius: 12px;
-      --radius-sm: 8px;
-      --radius-lg: 20px;
-      --shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-      --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.3);
-      --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-secondary: 'SF Pro Display', 'Inter', sans-serif;
-      --transition: 0.25s cubic-bezier(0.2, 0, 0, 1);
-      --nav-height: 64px;
-      --sidebar-width: 260px;
-    }
-
-    body {
-      font-family: var(--font-primary);
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.5;
-      overflow: hidden;
-      height: 100vh;
-      width: 100vw;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* scrollbar */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: var(--bg-surface); }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
-
-    /* ----- LANDING (STEP 1) ----- */
-    #landing {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      padding: 2rem;
-      background: radial-gradient(ellipse at 20% 50%, #1A1025, var(--bg) 70%);
-      animation: fadeIn 0.6s ease;
-      text-align: center;
-    }
-
-    #landing h1 {
-      font-size: clamp(2.4rem, 5vw, 4.2rem);
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      background: linear-gradient(135deg, #fff 40%, var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: 0.2rem;
-    }
-    #landing .sub {
-      font-size: 1.2rem;
-      color: var(--text-secondary);
-      margin-bottom: 2.8rem;
-      font-weight: 350;
-    }
-
-    .card-grid {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 1.8rem;
-      max-width: 960px;
-      margin: 0 auto;
-    }
-
-    .format-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 2rem 1.8rem 1.8rem;
-      width: 200px;
-      cursor: pointer;
-      transition: var(--transition);
-      text-align: center;
-      box-shadow: var(--shadow-sm);
-      backdrop-filter: blur(4px);
-      position: relative;
-    }
-    .format-card:hover {
-      transform: translateY(-6px);
-      background: var(--bg-card-hover);
-      border-color: var(--accent);
-      box-shadow: 0 20px 40px rgba(124, 58, 237, 0.15);
-    }
-    .format-card:active { transform: scale(0.96); }
-    .format-card .icon {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
-      display: block;
-    }
-    .format-card h3 {
-      font-size: 1.2rem;
-      font-weight: 550;
-      margin-bottom: 0.3rem;
-    }
-    .format-card p {
-      font-size: 0.9rem;
-      color: var(--text-secondary);
-      line-height: 1.4;
-    }
-    .format-card.selected {
-      border-color: var(--accent);
-      background: rgba(124, 58, 237, 0.08);
-      box-shadow: 0 0 0 1px var(--accent), var(--shadow-sm);
-    }
-    .format-card .badge {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      background: var(--accent);
-      font-size: 0.6rem;
-      font-weight: 600;
-      padding: 0.2rem 0.6rem;
-      border-radius: 20px;
-      color: #fff;
-      letter-spacing: 0.3px;
-      opacity: 0;
-      transition: var(--transition);
-    }
-    .format-card.selected .badge { opacity: 1; }
-
-    .btn-primary {
-      background: var(--accent);
-      border: none;
-      color: #fff;
-      font-weight: 550;
-      padding: 0.8rem 2.8rem;
-      border-radius: 60px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: var(--transition);
-      margin-top: 2.8rem;
-      box-shadow: 0 8px 24px rgba(124, 58, 237, 0.25);
-      letter-spacing: 0.2px;
-    }
-    .btn-primary:hover { background: var(--accent-hover); transform: scale(1.02); }
-    .btn-primary:active { transform: scale(0.96); }
-    .btn-primary:disabled { opacity: 0.4; pointer-events: none; }
-
-    /* ----- WORKSPACE (hidden by default) ----- */
-    #workspace {
-      display: none;
-      height: 100vh;
-      width: 100vw;
-      background: var(--bg);
-      flex-direction: column;
-      overflow: hidden;
-      animation: fadeIn 0.4s ease;
-    }
-
-    /* top nav */
-    .topnav {
-      height: var(--nav-height);
-      background: var(--bg-surface);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      padding: 0 1.8rem;
-      flex-shrink: 0;
-      gap: 1.2rem;
-    }
-    .topnav .brand {
-      font-weight: 600;
-      font-size: 1.1rem;
-      letter-spacing: -0.3px;
-      background: linear-gradient(135deg, #fff, var(--accent));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-right: auto;
-    }
-    .topnav .actions {
-      display: flex;
-      gap: 0.8rem;
-      align-items: center;
-    }
-    .topnav .actions button {
-      background: transparent;
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-      padding: 0.4rem 1rem;
-      border-radius: 40px;
-      font-size: 0.8rem;
-      font-weight: 450;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-    .topnav .actions button:hover {
-      background: var(--bg-card);
-      color: #fff;
-      border-color: var(--accent);
-    }
-    .topnav .actions .publish-btn {
-      background: var(--accent);
-      border: none;
-      color: #fff;
-      padding: 0.4rem 1.4rem;
-    }
-    .topnav .actions .publish-btn:hover { background: var(--accent-hover); }
-
-    /* main layout: sidebar + editor + preview */
-    .workspace-body {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-      height: calc(100vh - var(--nav-height));
-    }
-
-    /* SIDEBAR */
-    .sidebar {
-      width: var(--sidebar-width);
-      background: var(--bg-surface);
-      border-right: 1px solid var(--border);
-      padding: 1.2rem 0.6rem;
-      overflow-y: auto;
-      flex-shrink: 0;
-    }
-    .sidebar ul {
-      list-style: none;
-    }
-    .sidebar li {
-      padding: 0.6rem 1rem;
-      border-radius: var(--radius-sm);
-      margin-bottom: 2px;
-      font-size: 0.9rem;
-      font-weight: 450;
-      color: var(--text-secondary);
-      cursor: pointer;
-      transition: var(--transition);
-      display: flex;
-      align-items: center;
-      gap: 0.7rem;
-    }
-    .sidebar li:hover { background: var(--bg-card); color: #fff; }
-    .sidebar li.active {
-      background: rgba(124, 58, 237, 0.15);
-      color: #fff;
-      border-left: 3px solid var(--accent);
-    }
-    .sidebar li .icon { font-size: 1.2rem; width: 24px; text-align: center; }
-
-    /* EDITOR + PREVIEW (split) */
-    .editor-panel {
-      flex: 1;
-      display: flex;
-      overflow: hidden;
-      background: var(--bg);
-    }
-
-    .editor-area {
-      flex: 1.2;
-      padding: 1.8rem 1.8rem 2rem;
-      overflow-y: auto;
-      background: var(--bg);
-      border-right: 1px solid var(--border);
-    }
-
-    .preview-area {
-      flex: 1;
-      background: var(--bg-surface);
-      padding: 1.2rem;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-    .preview-area .preview-toolbar {
-      display: flex;
-      gap: 0.6rem;
-      margin-bottom: 0.8rem;
-      align-items: center;
-    }
-    .preview-area .preview-toolbar button {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-      padding: 0.2rem 1rem;
-      border-radius: 30px;
-      font-size: 0.7rem;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-    .preview-area .preview-toolbar button.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-    .preview-frame {
-      flex: 1;
-      background: #0e0e14;
-      border-radius: var(--radius);
-      border: 1px solid var(--border);
-      overflow: hidden;
-      position: relative;
-      box-shadow: inset 0 0 60px rgba(0,0,0,0.4);
-    }
-    .preview-frame iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      background: #fff;
-    }
-
-    /* editor content */
-    .editor-section {
-      display: block;
-    }
-    .editor-section.hidden {
-      display: none;
-    }
-
-    .editor-section h2 {
-      font-size: 1.4rem;
-      font-weight: 550;
-      margin-bottom: 1.2rem;
-      letter-spacing: -0.3px;
-    }
-    .editor-section label {
-      display: block;
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--text-secondary);
-      margin-top: 1.2rem;
-      margin-bottom: 0.3rem;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-    }
-    .editor-section input, .editor-section textarea, .editor-section select {
-      width: 100%;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 0.7rem 1rem;
-      color: #fff;
-      font-size: 0.95rem;
-      font-family: var(--font-primary);
-      transition: var(--transition);
-      outline: none;
-    }
-    .editor-section input:focus, .editor-section textarea:focus {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
-    }
-    .editor-section textarea { min-height: 80px; resize: vertical; }
-    .editor-section .row {
-      display: flex;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    .editor-section .row > * { flex: 1; min-width: 140px; }
-
-    /* showcase blocks */
-    .block-list {
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-      margin-top: 0.8rem;
-    }
-    .block-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 0.8rem 1rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      cursor: grab;
-      transition: var(--transition);
-    }
-    .block-item:hover { border-color: var(--accent); background: var(--bg-card-hover); }
-    .block-item .drag { color: var(--text-muted); font-size: 1.2rem; cursor: grab; }
-    .block-item .block-type { font-weight: 450; flex: 1; }
-    .block-item .block-del { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem; padding: 0 0.4rem; }
-    .block-item .block-del:hover { color: #ef4444; }
-
-    .add-block-bar {
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-      margin: 0.8rem 0 0.4rem;
-    }
-    .add-block-bar button {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text-secondary);
-      border-radius: 30px;
-      padding: 0.2rem 1rem;
-      font-size: 0.7rem;
-      cursor: pointer;
-      transition: var(--transition);
-    }
-    .add-block-bar button:hover { border-color: var(--accent); color: #fff; }
-
-    /* utility */
-    .mt-2 { margin-top: 1.2rem; }
-    .flex { display: flex; gap: 0.6rem; align-items: center; }
-
-    /* animations */
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-    .toast {
-      position: fixed;
-      bottom: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      padding: 0.6rem 1.8rem;
-      border-radius: 60px;
-      font-size: 0.9rem;
-      color: #fff;
-      box-shadow: var(--shadow);
-      z-index: 999;
-      animation: fadeIn 0.3s ease;
-    }
-
-    /* responsive */
-    @media (max-width: 1000px) {
-      .sidebar { width: 60px; padding: 0.8rem 0.2rem; }
-      .sidebar li span:not(.icon) { display: none; }
-      .sidebar li { justify-content: center; padding: 0.6rem; }
-    }
-    @media (max-width: 768px) {
-      .workspace-body { flex-direction: column; }
-      .sidebar { width: 100%; height: auto; flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--border); display: flex; gap: 0.2rem; padding: 0.4rem; }
-      .sidebar ul { display: flex; }
-      .editor-panel { flex-direction: column; }
-      .editor-area { border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
-      .preview-area { min-height: 40vh; }
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Creative Portfolio Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-<!-- ========== LANDING ========== -->
-<section id="landing">
-  <h1>Creative Portfolio Studio</h1>
-  <p class="sub">Design your brand. Publish everywhere.</p>
-  <div class="card-grid" id="formatGrid">
-    <!-- cards injected by JS -->
-  </div>
-  <button class="btn-primary" id="enterStudioBtn" disabled>Enter Studio →</button>
-</section>
-
-<!-- ========== WORKSPACE ========== -->
-<section id="workspace">
-  <!-- top nav -->
-  <nav class="topnav">
-    <span class="brand">✦ Creative Studio</span>
-    <div class="actions">
-      <button id="undoBtn">↩ Undo</button>
-      <button id="redoBtn">↪ Redo</button>
-      <button class="publish-btn" id="publishBtn">Publish</button>
-    </div>
-  </nav>
-
-  <div class="workspace-body">
-    <!-- sidebar -->
-    <nav class="sidebar" id="sidebar">
-      <ul>
-        <li data-section="identity" class="active"><span class="icon">👤</span><span>Identity</span></li>
-        <li data-section="brand"><span class="icon">🎨</span><span>Brand</span></li>
-        <li data-section="showcases"><span class="icon">📁</span><span>Showcases</span></li>
-        <li data-section="assets"><span class="icon">🖼️</span><span>Assets</span></li>
-        <li data-section="seo"><span class="icon">🔍</span><span>SEO</span></li>
-      </ul>
-    </nav>
-
-    <!-- editor + preview -->
-    <div class="editor-panel">
-      <div class="editor-area" id="editorArea">
-        <!-- sections rendered by JS -->
-      </div>
-      <div class="preview-area">
-        <div class="preview-toolbar">
-          <button data-device="desktop" class="active">🖥 Desktop</button>
-          <button data-device="tablet">📱 Tablet</button>
-          <button data-device="mobile">📲 Mobile</button>
-          <span style="flex:1"></span>
-          <span style="color:var(--text-muted);font-size:0.7rem;">live preview</span>
+    <!-- ========== LANDING ========== -->
+    <section id="landing">
+        <div class="landing-content">
+            <div class="landing-badge">✦ v2.0</div>
+            <h1>Creative Portfolio Studio</h1>
+            <p class="sub">Design your brand. Publish everywhere.</p>
+            <div class="card-grid" id="formatGrid"></div>
+            <button class="btn-primary" id="enterStudioBtn" disabled>
+                Enter Studio <span class="arrow">→</span>
+            </button>
         </div>
-        <div class="preview-frame">
-          <iframe id="previewIframe" srcdoc="<html><body style='display:flex;align-items:center;justify-content:center;font-family:system-ui;color:#222;background:#f8f8fa;height:100%;margin:0;'><div style='text-align:center;'><h2 style='font-weight:300;'>✨ Your portfolio preview</h2><p style='color:#666;'>Start editing to see changes</p></div></body></html>"></iframe>
+    </section>
+
+    <!-- ========== WORKSPACE ========== -->
+    <section id="workspace">
+        <!-- Top Navigation -->
+        <nav class="topnav">
+            <div class="nav-left">
+                <span class="brand">✦ Creative Studio</span>
+                <span class="nav-format" id="navFormat">Website</span>
+            </div>
+            <div class="nav-center">
+                <button class="nav-btn" id="undoBtn" title="Undo (⌘Z)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"/></svg>
+                </button>
+                <button class="nav-btn" id="redoBtn" title="Redo (⌘⇧Z)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 019-9 9 9 0 016 2.3L21 13"/></svg>
+                </button>
+                <div class="nav-divider"></div>
+                <button class="nav-btn" id="saveBtn" title="Save (⌘S)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+                </button>
+            </div>
+            <div class="nav-right">
+                <button class="btn-publish" id="publishBtn">Publish</button>
+            </div>
+        </nav>
+
+        <div class="workspace-body">
+            <!-- Sidebar -->
+            <nav class="sidebar" id="sidebar">
+                <ul>
+                    <li data-section="identity" class="active">
+                        <span class="icon">👤</span>
+                        <span class="label">Identity</span>
+                    </li>
+                    <li data-section="brand">
+                        <span class="icon">🎨</span>
+                        <span class="label">Brand</span>
+                    </li>
+                    <li data-section="showcases">
+                        <span class="icon">📁</span>
+                        <span class="label">Showcases</span>
+                        <span class="badge-count" id="showcaseCount">1</span>
+                    </li>
+                    <li data-section="assets">
+                        <span class="icon">🖼️</span>
+                        <span class="label">Assets</span>
+                        <span class="badge-count" id="assetCount">0</span>
+                    </li>
+                    <li data-section="seo">
+                        <span class="icon">🔍</span>
+                        <span class="label">SEO</span>
+                    </li>
+                </ul>
+            </nav>
+
+            <!-- Editor + Preview -->
+            <div class="editor-panel">
+                <div class="editor-area" id="editorArea"></div>
+                <div class="preview-area">
+                    <div class="preview-toolbar">
+                        <div class="device-group">
+                            <button data-device="desktop" class="active" title="Desktop">🖥</button>
+                            <button data-device="tablet" title="Tablet">📱</button>
+                            <button data-device="mobile" title="Mobile">📲</button>
+                        </div>
+                        <span class="preview-label">Live Preview</span>
+                        <button class="refresh-btn" id="refreshPreview" title="Refresh Preview">⟳</button>
+                    </div>
+                    <div class="preview-frame" id="previewFrame">
+                        <iframe id="previewIframe"></iframe>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </div>
-</section>
+    </section>
 
-<script>
-/* ============================================================
-   CREATIVE PORTFOLIO STUDIO – Vanilla JS Application
-   Architecture: State → Render → Events
-   ============================================================ */
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
 
-// ----- STATE -----
-const state = {
-  step: 'landing', // 'landing' | 'workspace'
-  selectedFormat: null, // 'website' | 'notion' | 'pdf' | 'all'
-  portfolio: {
-    identity: { name: 'Alex Rivera', headline: 'Design & Motion', about: 'Creative director with 8+ years of experience.' },
-    brand: { accent: '#7C3AED', darkMode: false },
-    showcases: [
-      { id: 'show1', title: 'Brand Identity for Lumen', type: 'Case Study', blocks: [
-        { type: 'text', content: 'A bold visual system for a future-forward energy brand.' },
-        { type: 'image', content: 'https://placehold.co/600x400/7C3AED/FFFFFF?text=Showcase' }
-      ]}
-    ],
-    assets: [],
-    seo: { title: 'Alex Rivera · Portfolio', description: 'Design & Motion' }
-  },
-  ui: {
-    activeSection: 'identity',
-    device: 'desktop',
-    selectedShowcase: 'show1',
-    history: [],
-    historyIndex: -1
-  }
-};
-
-// ----- DOM REFS -----
-const $ = sel => document.querySelector(sel);
-const $$ = sel => document.querySelectorAll(sel);
-
-const landingEl = $('#landing');
-const workspaceEl = $('#workspace');
-const formatGrid = $('#formatGrid');
-const enterBtn = $('#enterStudioBtn');
-const editorArea = $('#editorArea');
-const sidebar = $('#sidebar');
-const previewIframe = $('#previewIframe');
-
-// ----- FORMAT CARDS -----
-const formats = [
-  { id: 'website', icon: '🌐', title: 'Website Portfolio', desc: 'Interactive & responsive' },
-  { id: 'notion', icon: '📓', title: 'Notion Portfolio', desc: 'Minimal & clean' },
-  { id: 'pdf', icon: '📄', title: 'PDF Portfolio', desc: 'Print-ready' },
-  { id: 'all', icon: '⚡', title: 'Decide Later', desc: 'Choose at publish' }
-];
-
-function renderLanding() {
-  formatGrid.innerHTML = formats.map(f => `
-    <div class="format-card" data-format="${f.id}">
-      <span class="icon">${f.icon}</span>
-      <h3>${f.title}</h3>
-      <p>${f.desc}</p>
-      <span class="badge">✓</span>
-    </div>
-  `).join('');
-
-  formatGrid.querySelectorAll('.format-card').forEach(el => {
-    el.addEventListener('click', () => {
-      formatGrid.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
-      el.classList.add('selected');
-      state.selectedFormat = el.dataset.format;
-      enterBtn.disabled = false;
-    });
-  });
-}
-renderLanding();
-
-// ----- ENTER WORKSPACE -----
-enterBtn.addEventListener('click', () => {
-  if (!state.selectedFormat) return;
-  landingEl.style.display = 'none';
-  workspaceEl.style.display = 'flex';
-  state.step = 'workspace';
-  renderWorkspace();
-  updatePreview();
-});
-
-// ----- WORKSPACE RENDER -----
-function renderWorkspace() {
-  renderSidebar();
-  renderEditor();
-}
-
-function renderSidebar() {
-  sidebar.querySelectorAll('li').forEach(li => {
-    li.classList.toggle('active', li.dataset.section === state.ui.activeSection);
-    li.addEventListener('click', () => {
-      state.ui.activeSection = li.dataset.section;
-      renderSidebar();
-      renderEditor();
-    });
-  });
-}
-
-function renderEditor() {
-  const section = state.ui.activeSection;
-  let html = '';
-  const p = state.portfolio;
-  const ui = state.ui;
-
-  if (section === 'identity') {
-    html = `
-      <div class="editor-section">
-        <h2>👤 Identity</h2>
-        <label>Name</label>
-        <input type="text" id="idName" value="${p.identity.name || ''}" />
-        <label>Headline</label>
-        <input type="text" id="idHeadline" value="${p.identity.headline || ''}" />
-        <label>About</label>
-        <textarea id="idAbout" rows="3">${p.identity.about || ''}</textarea>
-      </div>
-    `;
-  } else if (section === 'brand') {
-    html = `
-      <div class="editor-section">
-        <h2>🎨 Brand</h2>
-        <label>Accent Color</label>
-        <input type="color" id="brandAccent" value="${p.brand.accent || '#7C3AED'}" style="padding:0;height:44px;" />
-        <label>Dark Mode</label>
-        <select id="brandDark">
-          <option value="false" ${!p.brand.darkMode ? 'selected' : ''}>Light</option>
-          <option value="true" ${p.brand.darkMode ? 'selected' : ''}>Dark</option>
-        </select>
-      </div>
-    `;
-  } else if (section === 'showcases') {
-    const sc = p.showcases.find(s => s.id === ui.selectedShowcase) || p.showcases[0];
-    html = `
-      <div class="editor-section">
-        <h2>📁 Showcases</h2>
-        <div style="display:flex;gap:0.6rem;flex-wrap:wrap;margin-bottom:1rem;">
-          ${p.showcases.map(s => `<button style="background:${ui.selectedShowcase===s.id?'var(--accent)':'var(--bg-card)'};border:1px solid var(--border);border-radius:30px;padding:0.2rem 1rem;color:#fff;cursor:pointer;" data-scid="${s.id}">${s.title}</button>`).join('')}
-          <button style="background:var(--bg-card);border:1px solid var(--border);border-radius:30px;padding:0.2rem 1rem;color:var(--text-secondary);cursor:pointer;" id="addShowcaseBtn">+ Add</button>
-        </div>
-        ${sc ? `
-          <label>Showcase Title</label>
-          <input type="text" id="scTitle" value="${sc.title || ''}" />
-          <label>Type</label>
-          <input type="text" id="scType" value="${sc.type || ''}" />
-          <label>Blocks (drag to reorder)</label>
-          <div class="block-list" id="blockList">
-            ${sc.blocks.map((b,i) => `
-              <div class="block-item" data-index="${i}">
-                <span class="drag">⠿</span>
-                <span class="block-type">${b.type}</span>
-                <span style="color:var(--text-muted);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${b.content.substring(0,40)}</span>
-                <button class="block-del" data-index="${i}">✕</button>
-              </div>
-            `).join('')}
-          </div>
-          <div class="add-block-bar">
-            ${['text','image','quote','video','gallery'].map(t => `<button data-blocktype="${t}">+ ${t}</button>`).join('')}
-          </div>
-        ` : '<p style="color:var(--text-muted)">No showcase selected</p>'}
-      </div>
-    `;
-  } else if (section === 'assets') {
-    html = `
-      <div class="editor-section">
-        <h2>🖼️ Assets</h2>
-        <p style="color:var(--text-muted)">Upload images, videos, or add external links.</p>
-        <label>External Link (YouTube, Figma, etc.)</label>
-        <input type="url" id="assetLink" placeholder="https://..." />
-        <button style="margin-top:0.4rem;background:var(--bg-card);border:1px solid var(--border);border-radius:30px;padding:0.3rem 1.4rem;color:#fff;cursor:pointer;" id="addAssetBtn">+ Add Link</button>
-        <div style="margin-top:0.8rem;display:flex;flex-wrap:wrap;gap:0.6rem;">
-          ${p.assets.map(a => `<span style="background:var(--bg-card);padding:0.2rem 1rem;border-radius:30px;border:1px solid var(--border);font-size:0.8rem;">${a}</span>`).join('')}
-        </div>
-      </div>
-    `;
-  } else if (section === 'seo') {
-    html = `
-      <div class="editor-section">
-        <h2>🔍 SEO</h2>
-        <label>Page Title</label>
-        <input type="text" id="seoTitle" value="${p.seo.title || ''}" />
-        <label>Description</label>
-        <textarea id="seoDesc" rows="2">${p.seo.description || ''}</textarea>
-      </div>
-    `;
-  }
-
-  editorArea.innerHTML = html;
-  attachEditorEvents();
-}
-
-// ----- EDITOR EVENTS -----
-function attachEditorEvents() {
-  const p = state.portfolio;
-  const ui = state.ui;
-
-  // identity
-  const idName = $('#idName');
-  if (idName) idName.addEventListener('input', e => { p.identity.name = e.target.value; updatePreview(); });
-  const idHeadline = $('#idHeadline');
-  if (idHeadline) idHeadline.addEventListener('input', e => { p.identity.headline = e.target.value; updatePreview(); });
-  const idAbout = $('#idAbout');
-  if (idAbout) idAbout.addEventListener('input', e => { p.identity.about = e.target.value; updatePreview(); });
-
-  // brand
-  const brandAccent = $('#brandAccent');
-  if (brandAccent) brandAccent.addEventListener('input', e => { p.brand.accent = e.target.value; updatePreview(); });
-  const brandDark = $('#brandDark');
-  if (brandDark) brandDark.addEventListener('change', e => { p.brand.darkMode = e.target.value === 'true'; updatePreview(); });
-
-  // showcases
-  document.querySelectorAll('[data-scid]').forEach(btn => {
-    btn.addEventListener('click', () => { ui.selectedShowcase = btn.dataset.scid; renderEditor(); updatePreview(); });
-  });
-  const addShowcase = $('#addShowcaseBtn');
-  if (addShowcase) {
-    addShowcase.addEventListener('click', () => {
-      const newId = 'show' + Date.now();
-      p.showcases.push({ id: newId, title: 'New Showcase', type: 'Custom', blocks: [{ type: 'text', content: 'Add your content here.' }] });
-      ui.selectedShowcase = newId;
-      renderEditor();
-      updatePreview();
-    });
-  }
-  const scTitle = $('#scTitle');
-  if (scTitle) {
-    const sc = p.showcases.find(s => s.id === ui.selectedShowcase);
-    scTitle.addEventListener('input', e => { if (sc) { sc.title = e.target.value; updatePreview(); } });
-  }
-  const scType = $('#scType');
-  if (scType) {
-    const sc = p.showcases.find(s => s.id === ui.selectedShowcase);
-    scType.addEventListener('input', e => { if (sc) { sc.type = e.target.value; updatePreview(); } });
-  }
-
-  // block delete
-  document.querySelectorAll('.block-del').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const idx = parseInt(btn.dataset.index);
-      const sc = p.showcases.find(s => s.id === ui.selectedShowcase);
-      if (sc && sc.blocks.length > 1) {
-        sc.blocks.splice(idx, 1);
-        renderEditor();
-        updatePreview();
-      } else {
-        showToast('Keep at least one block');
-      }
-    });
-  });
-
-  // add block
-  document.querySelectorAll('[data-blocktype]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const type = btn.dataset.blocktype;
-      const sc = p.showcases.find(s => s.id === ui.selectedShowcase);
-      if (sc) {
-        const content = type === 'text' ? 'New text block' : type === 'image' ? 'https://placehold.co/600x400/7C3AED/FFFFFF?text=Image' : type === 'quote' ? '“A great quote.”' : type === 'video' ? 'Video embed' : 'Gallery';
-        sc.blocks.push({ type, content });
-        renderEditor();
-        updatePreview();
-      }
-    });
-  });
-
-  // assets
-  const addAssetBtn = $('#addAssetBtn');
-  if (addAssetBtn) {
-    addAssetBtn.addEventListener('click', () => {
-      const link = $('#assetLink');
-      if (link && link.value) {
-        p.assets.push(link.value);
-        link.value = '';
-        renderEditor();
-        updatePreview();
-      }
-    });
-  }
-
-  // seo
-  const seoTitle = $('#seoTitle');
-  if (seoTitle) seoTitle.addEventListener('input', e => { p.seo.title = e.target.value; updatePreview(); });
-  const seoDesc = $('#seoDesc');
-  if (seoDesc) seoDesc.addEventListener('input', e => { p.seo.description = e.target.value; updatePreview(); });
-}
-
-// ----- PREVIEW UPDATE -----
-function updatePreview() {
-  const p = state.portfolio;
-  const sc = p.showcases.find(s => s.id === state.ui.selectedShowcase) || p.showcases[0];
-  const accent = p.brand.accent || '#7C3AED';
-  const dark = p.brand.darkMode ? 'background:#111;color:#eee;' : 'background:#fafafa;color:#222;';
-
-  // Build preview HTML
-  let blocksHtml = '';
-  if (sc) {
-    blocksHtml = sc.blocks.map(b => {
-      if (b.type === 'text') return `<p style="margin:0.6rem 0;">${b.content}</p>`;
-      if (b.type === 'image') return `<img src="${b.content}" style="max-width:100%;border-radius:8px;margin:0.6rem 0;" />`;
-      if (b.type === 'quote') return `<blockquote style="border-left:4px solid ${accent};padding-left:1rem;font-style:italic;">${b.content}</blockquote>`;
-      if (b.type === 'video') return `<div style="background:#000;padding:1rem;border-radius:8px;text-align:center;color:#fff;">▶️ ${b.content}</div>`;
-      if (b.type === 'gallery') return `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;"><span style="background:${accent}22;padding:0.2rem 1rem;border-radius:30px;">📸 gallery item</span></div>`;
-      return `<div>${b.content}</div>`;
-    }).join('');
-  }
-
-  const doc = `
-    <!DOCTYPE html>
-    <html>
-    <head><style>
-      body { font-family: system-ui, -apple-system, sans-serif; margin: 0; padding: 2rem; ${dark} transition:0.2s; }
-      .container { max-width: 720px; margin: 0 auto; }
-      h1 { font-weight: 500; letter-spacing: -0.02em; }
-      .accent { color: ${accent}; }
-      .border-accent { border-color: ${accent}; }
-      .showcase-block { margin: 1rem 0; }
-      img { max-width: 100%; border-radius: 8px; }
-    </style></head>
-    <body>
-      <div class="container">
-        <h1>${p.identity.name || 'Your Name'}</h1>
-        <p style="color:#666;font-size:1.1rem;">${p.identity.headline || 'Creative Professional'}</p>
-        <p>${p.identity.about || ''}</p>
-        <hr style="margin:1.4rem 0;border-color:#ddd;" />
-        ${sc ? `<h2 style="font-weight:400;">${sc.title || 'Showcase'}</h2><p style="color:#666;">${sc.type || ''}</p>` : ''}
-        ${blocksHtml}
-        <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid #ddd;font-size:0.8rem;color:#999;">
-          ${p.seo.title || ''} · ${p.seo.description || ''}
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-  previewIframe.srcdoc = doc;
-}
-
-// ----- DEVICE TOGGLE -----
-document.querySelectorAll('[data-device]').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('[data-device]').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const device = btn.dataset.device;
-    const frame = previewIframe.parentElement;
-    if (device === 'desktop') { frame.style.maxWidth = '100%'; frame.style.margin = '0'; }
-    else if (device === 'tablet') { frame.style.maxWidth = '768px'; frame.style.margin = '0 auto'; }
-    else if (device === 'mobile') { frame.style.maxWidth = '375px'; frame.style.margin = '0 auto'; }
-  });
-});
-
-// ----- TOAST -----
-function showToast(msg) {
-  const old = document.querySelector('.toast');
-  if (old) old.remove();
-  const div = document.createElement('div');
-  div.className = 'toast';
-  div.textContent = msg;
-  document.body.appendChild(div);
-  setTimeout(() => div.remove(), 2200);
-}
-
-// ----- PUBLISH -----
-$('#publishBtn').addEventListener('click', () => {
-  let msg = '✨ Published as ';
-  if (state.selectedFormat === 'all') msg += 'Website + Notion + PDF';
-  else msg += state.selectedFormat;
-  showToast(msg + ' (simulated)');
-});
-
-// undo / redo (stub)
-$('#undoBtn').addEventListener('click', () => showToast('↩ Undo (simulated)'));
-$('#redoBtn').addEventListener('click', () => showToast('↪ Redo (simulated)'));
-
-// ----- INITIAL PREVIEW -----
-updatePreview();
-
-console.log('🚀 Creative Portfolio Studio ready');
-</script>
+    <script src="script.js"></script>
 </body>
 </html>
