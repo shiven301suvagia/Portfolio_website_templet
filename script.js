@@ -1,685 +1,496 @@
-/* ============================================================
-   CREATIVE PORTFOLIO STUDIO - script.js
-   Vanilla JS Application
-   ============================================================ */
+/**
+ * PORTFOLIO STUDIO V2.0 - CORE APPLICATION ENGINE
+ */
 
-// ----- STATE -----
-const state = {
-    step: 'landing',
-    selectedFormat: null,
-    portfolio: {
-        identity: {
-            name: 'Alex Rivera',
-            headline: 'Creative Director & Motion Designer',
-            about: 'Crafting visual stories for forward-thinking brands. 8+ years of experience in design, animation, and creative direction.'
-        },
-        brand: {
-            accent: '#7C3AED',
-            darkMode: false
-        },
-        showcases: [{
-            id: 'show1',
-            title: 'Brand Identity for Lumen',
-            type: 'Case Study',
-            blocks: [
-                { type: 'text', content: 'A bold visual system for a future-forward energy brand.' },
-                { type: 'image', content: 'https://placehold.co/600x400/7C3AED/FFFFFF?text=Lumen+Brand' },
-                { type: 'quote', content: 'Design is not just what it looks like, it\'s how it works.' }
-            ]
-        }],
-        assets: [],
-        seo: {
-            title: 'Alex Rivera · Creative Portfolio',
-            description: 'Design, Motion, and Creative Direction'
-        }
+// 1. Security & Sanitization Module
+const Security = {
+    escapeHTML(str) {
+        if (typeof str !== 'string') return str || '';
+        return str.replace(/[&<>"']/g, (match) => {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+            return map[match];
+        });
     },
-    ui: {
-        activeSection: 'identity',
-        device: 'desktop',
-        selectedShowcase: 'show1',
-        history: [],
-        historyIndex: -1,
-        isDirty: false
+
+    sanitizeURL(url) {
+        if (!url) return '';
+        const trimmed = url.trim();
+        if (/^(https?:\/\/|mailto:|tel:|\/|#)/i.test(trimmed)) {
+            return this.escapeHTML(trimmed);
+        }
+        return '#';
     }
 };
 
-// ----- DOM REFS -----
-const $ = (sel, ctx = document) => ctx.querySelector(sel);
-const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
+// 2. Centralized Reactive State Store
+class StateStore {
+    constructor() {
+        this.storageKey = 'v2_portfolio_studio_state';
+        this.listeners = new Set();
+        this.state = this.loadInitialState();
+    }
 
-const landingEl = $('#landing');
-const workspaceEl = $('#workspace');
-const formatGrid = $('#formatGrid');
-const enterBtn = $('#enterStudioBtn');
-const editorArea = $('#editorArea');
-const sidebar = $('#sidebar');
-const previewIframe = $('#previewIframe');
-const previewFrame = $('#previewFrame');
-const toastContainer = $('#toastContainer');
-const navFormat = $('#navFormat');
-const showcaseCount = $('#showcaseCount');
-const assetCount = $('#assetCount');
+    getDefaultState() {
+        return {
+            profile: {
+                name: 'Alex Morgan',
+                role: 'Senior Systems Architect & UX Designer',
+                bio: 'Crafting resilient web applications, modern frontend systems, and seamless user experiences.',
+                email: 'alex.morgan@example.com',
+                location: 'San Francisco, CA',
+                github: 'https://github.com',
+                linkedin: 'https://linkedin.com'
+            },
+            theme: {
+                layoutStyle: 'grid', // grid, split, sidebar, minimal
+                primaryColor: '#6366f1',
+                accentColor: '#10b981',
+                backgroundColor: '#0f172a',
+                textColor: '#f8fafc',
+                fontFamily: 'Inter',
+                borderRadius: 8,
+                containerWidth: 1200
+            },
+            showcases: [
+                {
+                    id: 'sc_1',
+                    type: 'Development',
+                    title: 'Cloud Analytics Dashboard',
+                    description: 'Real-time telemetry and metrics visualization platform with zero-latency updates.',
+                    link: 'https://github.com'
+                },
+                {
+                    id: 'sc_2',
+                    type: 'Case Study',
+                    title: 'Design System Architecture v3.0',
+                    description: 'Standardized UI token library scaling across 15+ engineering teams.',
+                    link: 'https://figma.com'
+                }
+            ],
+            assets: [
+                { id: 'ast_1', title: 'Header Banner', url: 'https://picsum.photos/800/400', type: 'image' }
+            ],
+            viewport: 'desktop'
+        };
+    }
 
-// ----- FORMAT CONFIG -----
-const formats = [
-    { id: 'website', icon: '🌐', title: 'Website', desc: 'Interactive & responsive' },
-    { id: 'notion', icon: '📓', title: 'Notion', desc: 'Minimal & clean' },
-    { id: 'pdf', icon: '📄', title: 'PDF', desc: 'Print-ready' },
-    { id: 'all', icon: '⚡', title: 'Decide Later', desc: 'Choose at publish' }
-];
-
-// ============================================================
-// LANDING PAGE
-// ============================================================
-
-function renderLanding() {
-    formatGrid.innerHTML = formats.map(f => `
-        <div class="format-card" data-format="${f.id}">
-            <span class="icon">${f.icon}</span>
-            <h3>${f.title}</h3>
-            <p>${f.desc}</p>
-            <span class="check">✓</span>
-        </div>
-    `).join('');
-
-    formatGrid.querySelectorAll('.format-card').forEach(el => {
-        el.addEventListener('click', () => {
-            formatGrid.querySelectorAll('.format-card').forEach(c => c.classList.remove('selected'));
-            el.classList.add('selected');
-            state.selectedFormat = el.dataset.format;
-            enterBtn.disabled = false;
-
-            // Update nav format label
-            const f = formats.find(f => f.id === state.selectedFormat);
-            if (f) navFormat.textContent = f.title;
-        });
-    });
-}
-
-// ----- ENTER WORKSPACE -----
-enterBtn.addEventListener('click', () => {
-    if (!state.selectedFormat) return;
-    landingEl.style.display = 'none';
-    workspaceEl.style.display = 'flex';
-    state.step = 'workspace';
-    renderWorkspace();
-    updatePreview();
-    showToast(`✨ Studio ready — building as ${formats.find(f => f.id === state.selectedFormat)?.title || 'portfolio'}`);
-});
-
-// ============================================================
-// WORKSPACE RENDER
-// ============================================================
-
-function renderWorkspace() {
-    renderSidebar();
-    renderEditor();
-    updateCounts();
-}
-
-function renderSidebar() {
-    const items = sidebar.querySelectorAll('li');
-    items.forEach(li => {
-        li.classList.toggle('active', li.dataset.section === state.ui.activeSection);
-        li.addEventListener('click', () => {
-            state.ui.activeSection = li.dataset.section;
-            renderSidebar();
-            renderEditor();
-        });
-    });
-}
-
-function updateCounts() {
-    showcaseCount.textContent = state.portfolio.showcases.length;
-    assetCount.textContent = state.portfolio.assets.length;
-}
-
-function renderEditor() {
-    const section = state.ui.activeSection;
-    const p = state.portfolio;
-    const ui = state.ui;
-    let html = '';
-
-    switch (section) {
-        case 'identity':
-            html = `
-                <div class="editor-section">
-                    <h2>👤 Identity</h2>
-                    <div class="field-group">
-                        <label>Full Name</label>
-                        <input type="text" id="idName" value="${escapeHtml(p.identity.name || '')}" placeholder="Your name" />
-                    </div>
-                    <div class="field-group">
-                        <label>Headline</label>
-                        <input type="text" id="idHeadline" value="${escapeHtml(p.identity.headline || '')}" placeholder="e.g. Creative Director" />
-                    </div>
-                    <div class="field-group">
-                        <label>About</label>
-                        <textarea id="idAbout" rows="4" placeholder="Tell your story...">${escapeHtml(p.identity.about || '')}</textarea>
-                    </div>
-                </div>
-            `;
-            break;
-
-        case 'brand':
-            html = `
-                <div class="editor-section">
-                    <h2>🎨 Brand</h2>
-                    <div class="field-group">
-                        <label>Accent Color</label>
-                        <input type="color" id="brandAccent" value="${p.brand.accent || '#7C3AED'}" />
-                    </div>
-                    <div class="field-group">
-                        <label>Appearance</label>
-                        <select id="brandDark">
-                            <option value="false" ${!p.brand.darkMode ? 'selected' : ''}>☀️ Light</option>
-                            <option value="true" ${p.brand.darkMode ? 'selected' : ''}>🌙 Dark</option>
-                        </select>
-                    </div>
-                    <div class="field-group" style="margin-top:1.5rem;padding:1rem;background:var(--bg-card);border-radius:var(--radius-sm);border:1px solid var(--border);">
-                        <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;">
-                            💡 Changes update the preview in real-time.
-                        </p>
-                    </div>
-                </div>
-            `;
-            break;
-
-        case 'showcases': {
-            const sc = p.showcases.find(s => s.id === ui.selectedShowcase) || p.showcases[0];
-            html = `
-                <div class="editor-section">
-                    <h2>📁 Showcases</h2>
-                    <div class="showcase-tabs">
-                        ${p.showcases.map(s => `
-                            <button class="showcase-tab ${ui.selectedShowcase === s.id ? 'active' : ''}" data-scid="${s.id}">
-                                ${escapeHtml(s.title || 'Untitled')}
-                            </button>
-                        `).join('')}
-                        <button class="showcase-tab add-tab" id="addShowcaseBtn">+ New</button>
-                    </div>
-                    ${sc ? `
-                        <div class="field-group">
-                            <label>Showcase Title</label>
-                            <input type="text" id="scTitle" value="${escapeHtml(sc.title || '')}" placeholder="Project name" />
-                        </div>
-                        <div class="field-group">
-                            <label>Type</label>
-                            <input type="text" id="scType" value="${escapeHtml(sc.type || '')}" placeholder="e.g. Case Study, Gallery" />
-                        </div>
-                        <div class="field-group">
-                            <label>Content Blocks <span style="font-weight:400;color:var(--text-muted);font-size:0.7rem;text-transform:none;">(drag to reorder)</span></label>
-                            <div class="block-list" id="blockList">
-                                ${sc.blocks.map((b, i) => `
-                                    <div class="block-item" data-index="${i}">
-                                        <span class="drag">⠿</span>
-                                        <span class="block-type">${b.type}</span>
-                                        <span class="block-content">${escapeHtml(b.content.substring(0, 50))}${b.content.length > 50 ? '…' : ''}</span>
-                                        <button class="block-del" data-index="${i}" title="Delete block">✕</button>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            <div class="add-block-bar">
-                                ${['text', 'image', 'quote', 'video', 'gallery'].map(t => 
-                                    `<button data-blocktype="${t}">+ ${t}</button>`
-                                ).join('')}
-                            </div>
-                        </div>
-                    ` : `
-                        <p style="color:var(--text-muted);padding:1rem 0;">No showcase selected. Create one to get started.</p>
-                    `}
-                </div>
-            `;
-            break;
+    loadInitialState() {
+        try {
+            const saved = localStorage.getItem(this.storageKey);
+            return saved ? JSON.parse(saved) : this.getDefaultState();
+        } catch (e) {
+            return this.getDefaultState();
         }
-
-        case 'assets':
-            html = `
-                <div class="editor-section">
-                    <h2>🖼️ Assets</h2>
-                    <p style="color:var(--text-secondary);font-size:0.9rem;margin-bottom:1rem;">
-                        Upload once, reuse everywhere. Add external links to showcase your work.
-                    </p>
-                    <div class="field-group">
-                        <label>Add External Link</label>
-                        <div style="display:flex;gap:0.6rem;">
-                            <input type="url" id="assetLink" placeholder="https://youtube.com/watch?v=..." style="flex:1;" />
-                            <button id="addAssetBtn" style="background:var(--accent);border:none;color:#fff;padding:0.65rem 1.4rem;border-radius:var(--radius-sm);cursor:pointer;font-weight:600;white-space:nowrap;">Add</button>
-                        </div>
-                    </div>
-                    <div class="asset-tags" id="assetTags">
-                        ${p.assets.map(a => `
-                            <span class="asset-tag">
-                                🔗 ${escapeHtml(a)}
-                                <button class="remove-asset" data-asset="${escapeHtml(a)}">✕</button>
-                            </span>
-                        `).join('')}
-                    </div>
-                    ${p.assets.length === 0 ? `<p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.5rem;">No assets added yet.</p>` : ''}
-                </div>
-            `;
-            break;
-
-        case 'seo':
-            html = `
-                <div class="editor-section">
-                    <h2>🔍 SEO</h2>
-                    <div class="field-group">
-                        <label>Page Title</label>
-                        <input type="text" id="seoTitle" value="${escapeHtml(p.seo.title || '')}" placeholder="Your portfolio title" />
-                    </div>
-                    <div class="field-group">
-                        <label>Meta Description</label>
-                        <textarea id="seoDesc" rows="3" placeholder="Brief description for search engines">${escapeHtml(p.seo.description || '')}</textarea>
-                    </div>
-                    <div class="field-group" style="margin-top:1.5rem;padding:1rem;background:var(--bg-card);border-radius:var(--radius-sm);border:1px solid var(--border);">
-                        <p style="font-size:0.8rem;color:var(--text-secondary);margin:0;">
-                            🔍 These fields help search engines understand your portfolio.
-                        </p>
-                    </div>
-                </div>
-            `;
-            break;
     }
 
-    editorArea.innerHTML = html;
-    attachEditorEvents();
+    getState() {
+        return JSON.parse(JSON.stringify(this.state));
+    }
+
+    set(path, value) {
+        const keys = path.split('.');
+        let current = this.state;
+        for (let i = 0; i < keys.length - 1; i++) {
+            if (!current[keys[i]]) current[keys[i]] = {};
+            current = current[keys[i]];
+        }
+        current[keys[keys.length - 1]] = value;
+        this.saveAndNotify();
+    }
+
+    saveAndNotify() {
+        localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+        this.listeners.forEach(fn => fn(this.state));
+    }
+
+    subscribe(fn) {
+        this.listeners.add(fn);
+        fn(this.state); // Initial emission
+        return () => this.listeners.delete(fn);
+    }
+
+    reset() {
+        this.state = this.getDefaultState();
+        this.saveAndNotify();
+    }
 }
 
-// ============================================================
-// EDITOR EVENTS
-// ============================================================
+const store = new StateStore();
 
-function attachEditorEvents() {
-    const p = state.portfolio;
-    const ui = state.ui;
+// 3. Live Preview Frame Engine
+const LivePreviewEngine = {
+    init() {
+        this.iframe = document.getElementById('preview-frame');
+        store.subscribe((state) => this.render(state));
+    },
 
-    // ----- Identity -----
-    const idName = $('#idName');
-    if (idName) idName.addEventListener('input', e => { p.identity.name = e.target.value; markDirty(); updatePreview(); });
+    render(state) {
+        if (!this.iframe) return;
+        const doc = this.iframe.contentDocument || this.iframe.contentWindow.document;
 
-    const idHeadline = $('#idHeadline');
-    if (idHeadline) idHeadline.addEventListener('input', e => { p.identity.headline = e.target.value; markDirty(); updatePreview(); });
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+                <meta charset="UTF-8">
+                <style>
+                    :root {
+                        --p-primary: ${state.theme.primaryColor};
+                        --p-accent: ${state.theme.accentColor};
+                        --p-bg: ${state.theme.backgroundColor};
+                        --p-text: ${state.theme.textColor};
+                        --p-font: '${state.theme.fontFamily}', sans-serif;
+                        --p-radius: ${state.theme.borderRadius}px;
+                        --p-max-width: ${state.theme.containerWidth}px;
+                    }
 
-    const idAbout = $('#idAbout');
-    if (idAbout) idAbout.addEventListener('input', e => { p.identity.about = e.target.value; markDirty(); updatePreview(); });
+                    * { box-sizing: border-box; margin: 0; padding: 0; }
+                    body {
+                        background-color: var(--p-bg);
+                        color: var(--p-text);
+                        font-family: var(--p-font);
+                        line-height: 1.6;
+                        padding: 2rem;
+                    }
 
-    // ----- Brand -----
-    const brandAccent = $('#brandAccent');
-    if (brandAccent) brandAccent.addEventListener('input', e => { p.brand.accent = e.target.value; markDirty(); updatePreview(); });
+                    .container {
+                        max-width: var(--p-max-width);
+                        margin: 0 auto;
+                    }
 
-    const brandDark = $('#brandDark');
-    if (brandDark) brandDark.addEventListener('change', e => { p.brand.darkMode = e.target.value === 'true'; markDirty(); updatePreview(); });
+                    header.hero {
+                        text-align: ${state.theme.layoutStyle === 'minimal' ? 'center' : 'left'};
+                        padding: 3rem 0;
+                        border-bottom: 1px solid rgba(255,255,255,0.1);
+                        margin-bottom: 2rem;
+                    }
 
-    // ----- Showcases -----
-    // Tab switching
-    $$('.showcase-tab[data-scid]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            ui.selectedShowcase = btn.dataset.scid;
-            renderEditor();
-            updatePreview();
-        });
-    });
+                    .hero-title {
+                        font-size: 2.5rem;
+                        font-weight: 700;
+                        margin-bottom: 0.5rem;
+                        color: var(--p-text);
+                    }
 
-    // Add showcase
-    const addBtn = $('#addShowcaseBtn');
-    if (addBtn) {
-        addBtn.addEventListener('click', () => {
-            const newId = 'show_' + Date.now();
-            p.showcases.push({
-                id: newId,
-                title: 'New Showcase',
-                type: 'Custom',
-                blocks: [{ type: 'text', content: 'Start creating your showcase content here.' }]
+                    .hero-role {
+                        font-size: 1.2rem;
+                        color: var(--p-primary);
+                        font-weight: 500;
+                        margin-bottom: 1rem;
+                    }
+
+                    .hero-bio {
+                        font-size: 1rem;
+                        opacity: 0.85;
+                        max-width: 600px;
+                        ${state.theme.layoutStyle === 'minimal' ? 'margin: 0 auto;' : ''}
+                    }
+
+                    .social-links {
+                        display: flex;
+                        gap: 1rem;
+                        margin-top: 1rem;
+                    }
+
+                    .social-links a {
+                        color: var(--p-accent);
+                        text-decoration: none;
+                        font-size: 0.9rem;
+                    }
+
+                    .section-title {
+                        font-size: 1.5rem;
+                        margin-bottom: 1.5rem;
+                    }
+
+                    .showcase-grid {
+                        display: grid;
+                        grid-template-columns: ${state.theme.layoutStyle === 'sidebar' ? '1fr' : 'repeat(auto-fill, minmax(280px, 1fr))'};
+                        gap: 1.5rem;
+                    }
+
+                    .card {
+                        background: rgba(255, 255, 255, 0.03);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        border-radius: var(--p-radius);
+                        padding: 1.5rem;
+                        transition: transform 0.2s ease;
+                    }
+
+                    .card-badge {
+                        display: inline-block;
+                        font-size: 0.7rem;
+                        text-transform: uppercase;
+                        background: var(--p-primary);
+                        color: #fff;
+                        padding: 0.2rem 0.5rem;
+                        border-radius: 4px;
+                        margin-bottom: 0.75rem;
+                    }
+
+                    .card h3 {
+                        font-size: 1.2rem;
+                        margin-bottom: 0.5rem;
+                    }
+
+                    .card p {
+                        font-size: 0.9rem;
+                        opacity: 0.75;
+                        margin-bottom: 1rem;
+                    }
+
+                    .card a {
+                        color: var(--p-accent);
+                        text-decoration: none;
+                        font-size: 0.85rem;
+                        font-weight: 600;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <header class="hero">
+                        <h1 class="hero-title">${Security.escapeHTML(state.profile.name)}</h1>
+                        <p class="hero-role">${Security.escapeHTML(state.profile.role)}</p>
+                        <p class="hero-bio">${Security.escapeHTML(state.profile.bio)}</p>
+                        <div class="social-links">
+                            ${state.profile.github ? `<a href="${Security.sanitizeURL(state.profile.github)}" target="_blank">GitHub</a>` : ''}
+                            ${state.profile.linkedin ? `<a href="${Security.sanitizeURL(state.profile.linkedin)}" target="_blank">LinkedIn</a>` : ''}
+                            ${state.profile.email ? `<a href="mailto:${Security.escapeHTML(state.profile.email)}">Email</a>` : ''}
+                        </div>
+                    </header>
+
+                    <main>
+                        <h2 class="section-title">Featured Showcases</h2>
+                        <div class="showcase-grid">
+                            ${state.showcases.map(item => `
+                                <article class="card">
+                                    <span class="card-badge">${Security.escapeHTML(item.type)}</span>
+                                    <h3>${Security.escapeHTML(item.title)}</h3>
+                                    <p>${Security.escapeHTML(item.description)}</p>
+                                    ${item.link ? `<a href="${Security.sanitizeURL(item.link)}" target="_blank">View Project &rarr;</a>` : ''}
+                                </article>
+                            `).join('')}
+                        </div>
+                    </main>
+                </div>
+            </body>
+            </html>
+        `;
+
+        doc.open();
+        doc.write(htmlContent);
+        doc.close();
+    }
+};
+
+// 4. Interactive Wizard UI Controller
+const WizardController = {
+    init() {
+        this.bindSteps();
+        this.bindProfileInputs();
+        this.bindThemeInputs();
+        this.bindShowcaseActions();
+        this.bindAssetActions();
+        this.bindExportModal();
+        this.bindViewportControls();
+
+        // Subscribe UI elements to state updates
+        store.subscribe(state => this.syncFormFields(state));
+    },
+
+    bindSteps() {
+        const buttons = document.querySelectorAll('.step-btn');
+        const panes = document.querySelectorAll('.wizard-pane');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const step = btn.dataset.step;
+                buttons.forEach(b => b.classList.remove('active'));
+                panes.forEach(p => p.classList.remove('active'));
+
+                btn.classList.add('active');
+                document.getElementById(`pane-step-${step}`).classList.add('active');
             });
-            ui.selectedShowcase = newId;
-            markDirty();
-            renderEditor();
-            updatePreview();
-            updateCounts();
-            showToast('✨ New showcase created');
         });
-    }
+    },
 
-    // Showcase title
-    const scTitle = $('#scTitle');
-    if (scTitle) {
-        const sc = p.showcases.find(s => s.id === ui.selectedShowcase);
-        scTitle.addEventListener('input', e => {
-            if (sc) { sc.title = e.target.value; markDirty(); updatePreview(); renderSidebar(); updateCounts(); }
-        });
-    }
-
-    // Showcase type
-    const scType = $('#scType');
-    if (scType) {
-        const sc = p.showcases.find(s => s.id === ui.selectedShowcase);
-        scType.addEventListener('input', e => {
-            if (sc) { sc.type = e.target.value; markDirty(); updatePreview(); }
-        });
-    }
-
-    // Block delete
-    $$('.block-del').forEach(btn => {
-        btn.addEventListener('click', e => {
-            e.stopPropagation();
-            const idx = parseInt(btn.dataset.index);
-            const sc = p.showcases.find(s => s.id === ui.selectedShowcase);
-            if (sc && sc.blocks.length > 1) {
-                sc.blocks.splice(idx, 1);
-                markDirty();
-                renderEditor();
-                updatePreview();
-                showToast('🗑️ Block removed');
-            } else {
-                showToast('Keep at least one block');
+    bindProfileInputs() {
+        const fields = ['name', 'role', 'bio', 'email', 'location', 'github', 'linkedin'];
+        fields.forEach(field => {
+            const input = document.getElementById(`input-${field}`);
+            if (input) {
+                input.addEventListener('input', (e) => {
+                    store.set(`profile.${field}`, e.target.value);
+                });
             }
         });
-    });
+    },
 
-    // Add block
-    $$('[data-blocktype]').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const type = btn.dataset.blocktype;
-            const sc = p.showcases.find(s => s.id === ui.selectedShowcase);
-            if (sc) {
-                const contentMap = {
-                    text: 'New text block — edit me!',
-                    image: 'https://placehold.co/600x400/7C3AED/FFFFFF?text=Image',
-                    quote: '“A great quote that inspires.”',
-                    video: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-                    gallery: 'Gallery placeholder — add your images'
+    bindThemeInputs() {
+        // Layout Presets
+        document.querySelectorAll('.preset-card').forEach(card => {
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.preset-card').forEach(c => c.classList.remove('active'));
+                card.classList.add('active');
+                store.set('theme.layoutStyle', card.dataset.layout);
+            });
+        });
+
+        // Color Pickers
+        const colors = ['primary', 'accent', 'bg', 'text'];
+        colors.forEach(c => {
+            const el = document.getElementById(`color-${c}`);
+            if (el) {
+                el.addEventListener('input', (e) => {
+                    const keyMap = { primary: 'primaryColor', accent: 'accentColor', bg: 'backgroundColor', text: 'textColor' };
+                    store.set(`theme.${keyMap[c]}`, e.target.value);
+                });
+            }
+        });
+
+        // Font Family
+        const fontSelect = document.getElementById('select-font');
+        if (fontSelect) {
+            fontSelect.addEventListener('change', (e) => {
+                store.set('theme.fontFamily', e.target.value);
+            });
+        }
+
+        // Sliders
+        const radiusSlider = document.getElementById('range-radius');
+        if (radiusSlider) {
+            radiusSlider.addEventListener('input', (e) => {
+                document.getElementById('val-radius').textContent = e.target.value;
+                store.set('theme.borderRadius', parseInt(e.target.value, 10));
+            });
+        }
+
+        const widthSlider = document.getElementById('range-width');
+        if (widthSlider) {
+            widthSlider.addEventListener('input', (e) => {
+                document.getElementById('val-width').textContent = e.target.value;
+                store.set('theme.containerWidth', parseInt(e.target.value, 10));
+            });
+        }
+    },
+
+    bindShowcaseActions() {
+        const addBtn = document.getElementById('btn-add-showcase');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => {
+                const current = store.getState().showcases;
+                const newItem = {
+                    id: 'sc_' + Date.now(),
+                    type: 'Case Study',
+                    title: 'New Showcase Project',
+                    description: 'Description of the newly created showcase item.',
+                    link: 'https://example.com'
                 };
-                sc.blocks.push({ type, content: contentMap[type] || 'New block' });
-                markDirty();
-                renderEditor();
-                updatePreview();
-                showToast(`➕ ${type} block added`);
-            }
-        });
-    });
-
-    // ----- Assets -----
-    const addAssetBtn = $('#addAssetBtn');
-    if (addAssetBtn) {
-        addAssetBtn.addEventListener('click', () => {
-            const link = $('#assetLink');
-            if (link && link.value.trim()) {
-                const url = link.value.trim();
-                // Basic URL validation
-                if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                    showToast('⚠️ Please enter a valid URL (http:// or https://)');
-                    return;
-                }
-                p.assets.push(url);
-                link.value = '';
-                markDirty();
-                renderEditor();
-                updatePreview();
-                updateCounts();
-                showToast('🔗 Asset added');
-            } else {
-                showToast('Please enter a URL');
-            }
-        });
-
-        // Enter key support
-        const assetLink = $('#assetLink');
-        if (assetLink) {
-            assetLink.addEventListener('keydown', e => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addAssetBtn.click();
-                }
+                store.set('showcases', [...current, newItem]);
             });
         }
-    }
+    },
 
-    // Remove asset
-    $$('.remove-asset').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const asset = btn.dataset.asset;
-            const idx = p.assets.indexOf(asset);
-            if (idx > -1) {
-                p.assets.splice(idx, 1);
-                markDirty();
-                renderEditor();
-                updateCounts();
-                showToast('🗑️ Asset removed');
+    bindAssetActions() {
+        const saveBtn = document.getElementById('btn-save-asset');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => {
+                const title = document.getElementById('asset-title').value;
+                const url = document.getElementById('asset-url').value;
+                const type = document.getElementById('asset-type').value;
+
+                if (!title || !url) return;
+
+                const current = store.getState().assets;
+                const newAsset = { id: 'ast_' + Date.now(), title, url, type };
+                store.set('assets', [...current, newAsset]);
+
+                // Reset Inputs
+                document.getElementById('asset-title').value = '';
+                document.getElementById('asset-url').value = '';
+            });
+        }
+    },
+
+    bindViewportControls() {
+        const buttons = document.querySelectorAll('.btn-viewport');
+        const container = document.getElementById('preview-container');
+
+        buttons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                container.dataset.device = btn.dataset.device;
+            });
+        });
+
+        // Reset Button
+        document.getElementById('btn-reset-state').addEventListener('click', () => {
+            if (confirm('Reset portfolio to initial factory defaults?')) {
+                store.reset();
             }
         });
-    });
+    },
 
-    // ----- SEO -----
-    const seoTitle = $('#seoTitle');
-    if (seoTitle) seoTitle.addEventListener('input', e => { p.seo.title = e.target.value; markDirty(); updatePreview(); });
+    bindExportModal() {
+        const modal = document.getElementById('export-modal');
+        const openBtn = document.getElementById('btn-export-code');
+        const closeBtn = document.getElementById('btn-close-modal');
 
-    const seoDesc = $('#seoDesc');
-    if (seoDesc) seoDesc.addEventListener('input', e => { p.seo.description = e.target.value; markDirty(); updatePreview(); });
-}
+        openBtn.addEventListener('click', () => {
+            const state = store.getState();
+            document.getElementById('export-code-html').value = `<header><h1>${state.profile.name}</h1></header>`;
+            document.getElementById('export-code-css').value = `:root { --primary: ${state.theme.primaryColor}; }`;
+            modal.classList.add('active');
+        });
 
-// ============================================================
-// PREVIEW
-// ============================================================
+        closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+    },
 
-function updatePreview() {
-    const p = state.portfolio;
-    const sc = p.showcases.find(s => s.id === state.ui.selectedShowcase) || p.showcases[0];
-    const accent = p.brand.accent || '#7C3AED';
-    const dark = p.brand.darkMode ?
-        'background:#0A0A12;color:#EEEEF0;' :
-        'background:#FAFAFC;color:#1A1A24;';
-
-    let blocksHtml = '';
-    if (sc && sc.blocks.length) {
-        blocksHtml = sc.blocks.map(b => {
-            const content = escapeHtml(b.content);
-            switch (b.type) {
-                case 'text':
-                    return `<p style="margin:0.6rem 0;font-size:1rem;line-height:1.7;">${content}</p>`;
-                case 'image':
-                    return `<img src="${b.content}" style="max-width:100%;border-radius:8px;margin:0.6rem 0;border:1px solid #eee;" alt="Showcase image" />`;
-                case 'quote':
-                    return `<blockquote style="border-left:4px solid ${accent};padding-left:1.2rem;margin:0.8rem 0;font-style:italic;color:#666;">${content}</blockquote>`;
-                case 'video':
-                    return `<div style="background:#000;padding:0.8rem;border-radius:8px;text-align:center;margin:0.6rem 0;color:#fff;font-size:0.9rem;">▶️ ${content}</div>`;
-                case 'gallery':
-                    return `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin:0.6rem 0;"><span style="background:${accent}22;padding:0.2rem 1rem;border-radius:30px;font-size:0.8rem;">📸 Gallery item</span><span style="background:${accent}22;padding:0.2rem 1rem;border-radius:30px;font-size:0.8rem;">📸 Gallery item</span></div>`;
-                default:
-                    return `<div style="margin:0.4rem 0;">${content}</div>`;
+    syncFormFields(state) {
+        // Sync profile text inputs
+        Object.keys(state.profile).forEach(key => {
+            const el = document.getElementById(`input-${key}`);
+            if (el && el !== document.activeElement) {
+                el.value = state.profile[key] || '';
             }
-        }).join('');
-    } else {
-        blocksHtml = `<p style="color:#999;font-style:italic;">Add content blocks to build your showcase.</p>`;
+        });
+
+        // Sync Showcase Cards UI
+        const showcaseList = document.getElementById('showcase-list');
+        if (showcaseList) {
+            showcaseList.innerHTML = state.showcases.map(item => `
+                <div class="showcase-item-card">
+                    <div class="showcase-item-header">
+                        <span class="showcase-item-title">${Security.escapeHTML(item.title)}</span>
+                        <button type="button" class="btn-remove" onclick="WizardController.removeShowcase('${item.id}')">Delete</button>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-muted);">${Security.escapeHTML(item.description)}</p>
+                </div>
+            `).join('');
+        }
+
+        // Sync Assets UI
+        const assetGrid = document.getElementById('asset-grid');
+        if (assetGrid) {
+            assetGrid.innerHTML = state.assets.map(ast => `
+                <div class="asset-card">
+                    <span class="asset-badge">${Security.escapeHTML(ast.type)}</span>
+                    <span class="asset-card-title">${Security.escapeHTML(ast.title)}</span>
+                </div>
+            `).join('');
+        }
+    },
+
+    removeShowcase(id) {
+        const current = store.getState().showcases;
+        store.set('showcases', current.filter(item => item.id !== id));
     }
+};
 
-    const doc = `
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            ${dark}
-            padding: 2rem 1.5rem;
-            line-height: 1.6;
-            transition: background 0.2s, color 0.2s;
-            min-height: 100%;
-        }
-        .container {
-            max-width: 720px;
-            margin: 0 auto;
-        }
-        .name {
-            font-size: 2.2rem;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin-bottom: 0.2rem;
-        }
-        .headline {
-            font-size: 1.1rem;
-            color: ${p.brand.darkMode ? '#A1A1B8' : '#666'};
-            margin-bottom: 0.6rem;
-        }
-        .about {
-            margin: 1rem 0 1.4rem;
-            color: ${p.brand.darkMode ? '#C8C8D4' : '#444'};
-        }
-        .divider {
-            border: none;
-            border-top: 1px solid ${p.brand.darkMode ? '#2A2A3E' : '#E5E5EA'};
-            margin: 1.4rem 0;
-        }
-        .showcase-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            letter-spacing: -0.01em;
-            margin-bottom: 0.2rem;
-        }
-        .showcase-type {
-            color: ${p.brand.darkMode ? '#A1A1B8' : '#666'};
-            font-size: 0.9rem;
-            margin-bottom: 0.8rem;
-        }
-        .showcase-content {
-            margin: 0.8rem 0;
-        }
-        .footer {
-            margin-top: 2rem;
-            padding-top: 1.2rem;
-            border-top: 1px solid ${p.brand.darkMode ? '#2A2A3E' : '#E5E5EA'};
-            font-size: 0.75rem;
-            color: ${p.brand.darkMode ? '#6B6B85' : '#999'};
-        }
-        .accent-color { color: ${accent}; }
-        img { max-width: 100%; height: auto; }
-        a { color: ${accent}; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="name">${escapeHtml(p.identity.name || 'Your Name')}</div>
-        <div class="headline">${escapeHtml(p.identity.headline || 'Creative Professional')}</div>
-        <div class="about">${escapeHtml(p.identity.about || '')}</div>
-        <hr class="divider" />
-        <div class="showcase-title">${escapeHtml(sc?.title || 'Showcase')}</div>
-        <div class="showcase-type">${escapeHtml(sc?.type || '')}</div>
-        <div class="showcase-content">${blocksHtml}</div>
-        <div class="footer">
-            ${escapeHtml(p.seo.title || '')} · ${escapeHtml(p.seo.description || '')}
-        </div>
-    </div>
-</body>
-</html>`;
-
-    previewIframe.srcdoc = doc;
-}
-
-// ============================================================
-// DEVICE TOGGLE
-// ============================================================
-
-$$('[data-device]').forEach(btn => {
-    btn.addEventListener('click', () => {
-        $$('[data-device]').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        const device = btn.dataset.device;
-        if (device === 'desktop') {
-            previewFrame.style.maxWidth = '100%';
-            previewFrame.style.margin = '0 auto';
-        } else if (device === 'tablet') {
-            previewFrame.style.maxWidth = '768px';
-            previewFrame.style.margin = '0 auto';
-        } else if (device === 'mobile') {
-            previewFrame.style.maxWidth = '375px';
-            previewFrame.style.margin = '0 auto';
-        }
-    });
+// Initialize Application on DOM Ready
+document.addEventListener('DOMContentLoaded', () => {
+    LivePreviewEngine.init();
+    WizardController.init();
 });
-
-// Refresh preview
-$('#refreshPreview')?.addEventListener('click', updatePreview);
-
-// ============================================================
-// UTILITY FUNCTIONS
-// ============================================================
-
-function escapeHtml(str) {
-    if (!str) return '';
-    const div = document.createElement('div');
-    div.textContent = str;
-    return div.innerHTML;
-}
-
-function markDirty() {
-    state.ui.isDirty = true;
-}
-
-function showToast(msg) {
-    if (!toastContainer) return;
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = msg;
-    toastContainer.appendChild(toast);
-
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-10px)';
-        toast.style.transition = '0.2s ease';
-        setTimeout(() => toast.remove(), 250);
-    }, 2200);
-}
-
-// ============================================================
-// NAV BUTTONS
-// ============================================================
-
-// Undo / Redo (simulated)
-$('#undoBtn')?.addEventListener('click', () => showToast('↩ Undo (simulated)'));
-$('#redoBtn')?.addEventListener('click', () => showToast('↪ Redo (simulated)'));
-
-// Save
-$('#saveBtn')?.addEventListener('click', () => {
-    state.ui.isDirty = false;
-    showToast('💾 Draft saved');
-});
-
-// Publish
-$('#publishBtn')?.addEventListener('click', () => {
-    let format = state.selectedFormat || 'website';
-    if (format === 'all') {
-        showToast('✨ Published as Website + Notion + PDF (simulated)');
-    } else {
-        showToast(`✨ Published as ${format.charAt(0).toUpperCase() + format.slice(1)} (simulated)`);
-    }
-});
-
-// Keyboard shortcuts
-document.addEventListener('keydown', (e) => {
-    // Cmd/Ctrl + S
-    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-        e.preventDefault();
-        $('#saveBtn')?.click();
-    }
-    // Cmd/Ctrl + Z
-    if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        $('#undoBtn')?.click();
-    }
-    // Cmd/Ctrl + Shift + Z
-    if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
-        e.preventDefault();
-        $('#redoBtn')?.click();
-    }
-});
-
-// ============================================================
-// INITIALIZATION
-// ============================================================
-
-renderLanding();
-updatePreview();
-
-console.log('🚀 Creative Portfolio Studio v2.0 ready');
-console.log('📦 Built with vanilla JS — premium SaaS experience');
